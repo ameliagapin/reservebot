@@ -75,5 +75,6 @@ func main() {
 	})
 
 	fmt.Println("[INFO] Server listening")
+
 	http.ListenAndServe(":666", nil)
 }
