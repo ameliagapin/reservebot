@@ -16,11 +16,13 @@ import (
 var (
 	token     string
 	challenge string
+	debug     bool
 )
 
 func main() {
 	flag.StringVar(&token, "token", "", "Slack API Token")
 	flag.StringVar(&challenge, "challenge", "", "Slack verification token")
+	flag.BoolVar(&debug, "debug", false, "Debug mode")
 	flag.Parse()
 
 	if token == "" {
@@ -32,7 +34,7 @@ func main() {
 		return
 	}
 
-	api := slack.New(token, slack.OptionDebug(true))
+	api := slack.New(token, slack.OptionDebug(debug))
 
 	handler := handler.New(api)
 
@@ -41,7 +43,7 @@ func main() {
 		buf.ReadFrom(r.Body)
 		body := buf.String()
 
-		log.Infof("Request: %s", body)
+		api.Debugf("Request: %s", body)
 
 		eventsAPIEvent, err := slackevents.ParseEvent(
 			json.RawMessage(body),
