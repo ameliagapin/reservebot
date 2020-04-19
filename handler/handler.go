@@ -3,10 +3,10 @@ package handler
 import (
 	"fmt"
 	"regexp"
-	"reservebot/models"
-	"reservebot/util"
 	"strings"
 
+	"github.com/ameliagapin/reservebot/models"
+	"github.com/ameliagapin/reservebot/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"

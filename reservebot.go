@@ -6,8 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	"reservebot/handler"
 
+	"github.com/ameliagapin/reservebot/handler"
 	log "github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
