@@ -24,6 +24,7 @@ type Handler struct {
 func New(client *slack.Client) *Handler {
 	actions["hello"] = *regexp.MustCompile(`hello.+`)
 	actions["reserve"] = *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sreserve\s(.+)`)
+	actions["release"] = *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\srelease\s(.+)`)
 	// This regex was an attempt to pull all resources in comma separated list in repeating capture groups. It did not work
 	//actions["reserve"] = *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sreserve\s([a-zA-Z0-9]+)(?:\,\s([a-zA-Z0-9]+))?`)
 
@@ -43,6 +44,8 @@ func (h *Handler) CallbackEvent(event slackevents.EventsAPIEvent) error {
 			return h.sayHello(ev)
 		case "reserve":
 			return h.reserve(ev)
+		case "release":
+			return h.release(ev)
 		default:
 			h.client.PostMessage(ev.Channel, slack.MsgOptionText("I'm sorry, I don't know what to do with that request", false))
 		}
@@ -74,7 +77,7 @@ func (h *Handler) reserve(ev *slackevents.AppMentionEvent) error {
 	matches := h.getMatches("reserve", ev.Text)
 	resources := h.getResourcesFromCommaList(matches[0])
 	if len(resources) == 0 {
-		msg := fmt.Sprintf("<@%s> you must specify a resource", ev.User)
+		msg := fmt.Sprintf("<@%s> you must specify a resource", u.ID)
 		h.client.PostMessage(ev.Channel, slack.MsgOptionText(msg, false))
 		return nil
 	}
@@ -87,6 +90,10 @@ func (h *Handler) reserve(ev *slackevents.AppMentionEvent) error {
 			continue
 		}
 		success = append(success, res)
+	}
+
+	if len(success) == 0 {
+		return nil
 	}
 
 	for _, res := range success {
@@ -102,9 +109,14 @@ func (h *Handler) reserve(ev *slackevents.AppMentionEvent) error {
 		case 0:
 			log.Errorf("%s reserved %s, but is currently not in the queue", u, res)
 		case 1:
-			msg = fmt.Sprintf("<@%s> currently has %s", u.ID, res)
+			msg = fmt.Sprintf("%s currently has %s", u.Name, res)
 		default:
-			msg = fmt.Sprintf("<@%s> is %s in line for %s", u.ID, util.Ordinalize(pos), res)
+			cu, err := h.reservations.GetReservationForResource(res)
+			c := ""
+			if err == nil && cu != nil {
+				c = fmt.Sprintf(". %s has it currently.", cu.User.Name)
+			}
+			msg = fmt.Sprintf("%s is %s in line for %s%s", u.Name, util.Ordinalize(pos), res, c)
 		}
 		h.client.PostMessage(ev.Channel, slack.MsgOptionText(msg, false))
 	}
@@ -112,6 +124,50 @@ func (h *Handler) reserve(ev *slackevents.AppMentionEvent) error {
 	return nil
 }
 
+func (h *Handler) release(ev *slackevents.AppMentionEvent) error {
+	u, err := h.getUser(ev.User)
+	if err != nil {
+		log.Errorf("%+v", err)
+		h.client.PostMessage(ev.Channel, slack.MsgOptionText("I'm sorry, something went wrong inside of me.", false))
+		return err
+	}
+
+	matches := h.getMatches("release", ev.Text)
+	resources := h.getResourcesFromCommaList(matches[0])
+	if len(resources) == 0 {
+		msg := fmt.Sprintf("<@%s> you must specify a resource", u.ID)
+		h.client.PostMessage(ev.Channel, slack.MsgOptionText(msg, false))
+		return nil
+	}
+
+	success := []string{}
+	for _, res := range resources {
+		err := h.reservations.Remove(res, u)
+		if err != nil {
+			h.client.PostMessage(ev.Channel, slack.MsgOptionText(err.Error(), false))
+			continue
+		}
+		success = append(success, res)
+	}
+
+	for _, res := range success {
+		cu, err := h.reservations.GetReservationForResource(res)
+		if err != nil {
+			h.client.PostMessage(ev.Channel, slack.MsgOptionText(err.Error(), false))
+			continue
+		}
+		msg := ""
+		if cu == nil {
+			msg = fmt.Sprintf("%s is now free", res)
+		} else {
+			msg = fmt.Sprintf("%s has released %s. <@%s>, it's all yours. Get weird.", u.Name, res, cu.User.ID)
+		}
+
+		h.client.PostMessage(ev.Channel, slack.MsgOptionText(msg, false))
+	}
+
+	return nil
+}
 func (h *Handler) getAction(text string) string {
 	for a, r := range actions {
 		if r.MatchString(text) {

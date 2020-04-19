@@ -63,6 +63,7 @@ func (r *Reservations) Remove(resource string, user *User) error {
 	for i, u := range queue {
 		if u.User.ID == user.ID {
 			r.Reservations[resource] = append(queue[:i], queue[i+1:]...)
+			return nil
 		}
 	}
 
@@ -82,4 +83,26 @@ func (r *Reservations) GetPosition(resource string, user *User) (int, error) {
 	}
 
 	return 0, nil
+}
+
+func (r *Reservations) GetQueueForResource(resource string) ([]*Reservation, error) {
+	queue, exists := r.Reservations[resource]
+	if !exists {
+		return []*Reservation{}, nil
+	}
+
+	return queue, nil
+}
+
+func (r *Reservations) GetReservationForResource(resource string) (*Reservation, error) {
+	queue, err := r.GetQueueForResource(resource)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(queue) == 0 {
+		return nil, nil
+	}
+
+	return queue[0], nil
 }
