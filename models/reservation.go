@@ -57,7 +57,7 @@ func (r *Reservations) Remove(resource string, user *User) error {
 
 	queue, exists := r.Reservations[resource]
 	if !exists {
-		return errors.New(fmt.Sprintf("Resource %s does not currently exist", resource))
+		return errors.New(fmt.Sprintf("Resource `%s` does not currently exist", resource))
 	}
 
 	for i, u := range queue {
@@ -67,13 +67,26 @@ func (r *Reservations) Remove(resource string, user *User) error {
 		}
 	}
 
-	return errors.New(fmt.Sprintf("<@%s> is not in line for %s", user.ID, resource))
+	return errors.New(fmt.Sprintf("<@%s> is not in line for `%s`", user.ID, resource))
 }
 
+func (r *Reservations) Clear(resource string) error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	_, exists := r.Reservations[resource]
+	if !exists {
+		return errors.New(fmt.Sprintf("Resource `%s` does not currently exist", resource))
+	}
+
+	r.Reservations[resource] = []*Reservation{}
+
+	return nil
+}
 func (r *Reservations) GetPosition(resource string, user *User) (int, error) {
 	queue, exists := r.Reservations[resource]
 	if !exists {
-		return 0, errors.New(fmt.Sprintf("Resource %s does not currently exist", resource))
+		return 0, errors.New(fmt.Sprintf("Resource `%s` does not currently exist", resource))
 	}
 
 	for i, u := range queue {
@@ -105,4 +118,13 @@ func (r *Reservations) GetReservationForResource(resource string) (*Reservation,
 	}
 
 	return queue[0], nil
+}
+
+func (r *Reservations) GetResources() []string {
+	ret := []string{}
+
+	for k, _ := range r.Reservations {
+		ret = append(ret, k)
+	}
+	return ret
 }
