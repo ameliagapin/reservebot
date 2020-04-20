@@ -13,7 +13,18 @@ import (
 )
 
 var (
-	actions = map[string]regexp.Regexp{}
+	actions = map[string]regexp.Regexp{
+		"hello":         *regexp.MustCompile(`hello.+`),
+		"reserve":       *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sreserve\s(.+)`),
+		"release":       *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\srelease\s(.+)`),
+		"clear":         *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sclear\s(.+)`),
+		"remove":        *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sremove\sme\sfrom\s(.+)`),
+		"all_status":    *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus$`),
+		"single_status": *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus\s([a-zA-Z0-9]+)`),
+		"nuke":          *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\snuke$`),
+		// This regex was an attempt to pull all resources in comma separated list in repeating capture groups. It did not work
+		//"reserve" : *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sreserve\s([a-zA-Z0-9]+)(?:\,\s([a-zA-Z0-9]+))?`),
+	}
 )
 
 type Handler struct {
@@ -22,16 +33,6 @@ type Handler struct {
 }
 
 func New(client *slack.Client) *Handler {
-	actions["hello"] = *regexp.MustCompile(`hello.+`)
-	actions["reserve"] = *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sreserve\s(.+)`)
-	actions["release"] = *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\srelease\s(.+)`)
-	actions["clear"] = *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sclear\s(.+)`)
-	actions["remove"] = *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sremove\sme\sfrom\s(.+)`)
-	actions["all_status"] = *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus$`)
-	actions["single_status"] = *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus\s([a-zA-Z0-9]+)`)
-	actions["nuke"] = *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\snuke$`)
-	// This regex was an attempt to pull all resources in comma separated list in repeating capture groups. It did not work
-	//actions["reserve"] = *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sreserve\s([a-zA-Z0-9]+)(?:\,\s([a-zA-Z0-9]+))?`)
 
 	return &Handler{
 		client:       client,
