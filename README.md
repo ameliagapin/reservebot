@@ -16,10 +16,19 @@ In one window:
 $ ngrok http 666
 ```
 
+### Locally on host machine
 In a second window:
 ```
 $ go build reservebot.go
 $ ./reservebot -token "<YOUR_SLACK_TOKEN>" -challenge "<SLACK_VERIFICATION_TOKEN>"
+```
+
+Then in Slack, set up "event subscriptions" for `<ngrok url from your terminal>/events`.
+
+### Docker
+```
+$ docker build -t reservebot .
+$ docker run [-d] -p 666:666 reservebot -token "<YOUR_SLACK_TOKEN>" -challenge "<SLACK_VERIFICATION_TOKEN>"
 ```
 
 Then in Slack, set up "event subscriptions" for `<ngrok url from your terminal>/events`.
