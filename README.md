@@ -58,5 +58,9 @@ This will remove the user from the queue for a resource.
 #### `@reservebot clear <resource>`
 This will clear the queue for a given resource and release it.
 
+#### `@reservebot kick <@user>`
+
+This will kick the mentioned user from _all_ resources they are holding. As the user is kicked from each resource, the queue will be advanced to the next user waiting.
+
 #### `@reservebot nuke`
 This will clear all reservations and all queues for all resources.

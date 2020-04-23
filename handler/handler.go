@@ -18,6 +18,7 @@ var (
 		"reserve":       *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sreserve\s(.+)`),
 		"release":       *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\srelease\s(.+)`),
 		"clear":         *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sclear\s(.+)`),
+		"kick":          *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\skick\s\<\@([a-zA-Z0-9]+)\>`),
 		"remove":        *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sremove\sme\sfrom\s(.+)`),
 		"all_status":    *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus$`),
 		"single_status": *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus\s([a-zA-Z0-9]+)`),
@@ -56,6 +57,8 @@ func (h *Handler) CallbackEvent(event slackevents.EventsAPIEvent) error {
 			return h.remove(ev)
 		case "clear":
 			return h.clear(ev)
+		case "kick":
+			return h.kick(ev)
 		case "nuke":
 			return h.nuke(ev)
 		case "all_status":
@@ -93,7 +96,7 @@ func (h *Handler) reserve(ev *slackevents.AppMentionEvent) error {
 	matches := h.getMatches("reserve", ev.Text)
 	resources := h.getResourcesFromCommaList(matches[0])
 	if len(resources) == 0 {
-		msg := fmt.Sprintf("<@%s> you must specify a resource", u.ID)
+		msg := fmt.Sprintf("%s you must specify a resource", h.getUserDisplay(u, true))
 		h.client.PostMessage(ev.Channel, slack.MsgOptionText(msg, false))
 		return nil
 	}
@@ -123,16 +126,16 @@ func (h *Handler) reserve(ev *slackevents.AppMentionEvent) error {
 		msg := ""
 		switch pos {
 		case 0:
-			log.Errorf("*%s* reserved `%s`, but is currently not in the queue", u, res)
+			log.Errorf("%s reserved `%s`, but is currently not in the queue", h.getUserDisplay(u, false), res)
 		case 1:
-			msg = fmt.Sprintf("*%s* currently has `%s`", u.Name, res)
+			msg = fmt.Sprintf("%s currently has `%s`", h.getUserDisplay(u, false), res)
 		default:
 			cu, err := h.reservations.GetReservationForResource(res)
 			c := ""
 			if err == nil && cu != nil {
-				c = fmt.Sprintf(". *%s* has it currently.", cu.User.Name)
+				c = fmt.Sprintf(". %s has it currently.", h.getUserDisplay(cu.User, false))
 			}
-			msg = fmt.Sprintf("*%s* is %s in line for `%s`%s", u.Name, util.Ordinalize(pos), res, c)
+			msg = fmt.Sprintf("%s is %s in line for `%s`%s", h.getUserDisplay(u, false), util.Ordinalize(pos), res, c)
 		}
 		h.client.PostMessage(ev.Channel, slack.MsgOptionText(msg, false))
 	}
@@ -151,7 +154,7 @@ func (h *Handler) release(ev *slackevents.AppMentionEvent) error {
 	matches := h.getMatches("release", ev.Text)
 	resources := h.getResourcesFromCommaList(matches[0])
 	if len(resources) == 0 {
-		msg := fmt.Sprintf("<@%s> you must specify a resource", u.ID)
+		msg := fmt.Sprintf("%s you must specify a resource", h.getUserDisplay(u, true))
 		h.client.PostMessage(ev.Channel, slack.MsgOptionText(msg, false))
 		return nil
 	}
@@ -176,7 +179,7 @@ func (h *Handler) release(ev *slackevents.AppMentionEvent) error {
 		if cu == nil {
 			msg = fmt.Sprintf("`%s` is now free", res)
 		} else {
-			msg = fmt.Sprintf("*%s* has released `%s`. <@%s>, it's all yours. Get weird.", u.Name, res, cu.User.ID)
+			msg = fmt.Sprintf("%s has released `%s`. %s, it's all yours. Get weird.", h.getUserDisplay(u, false), res, h.getUserDisplay(cu.User, true))
 		}
 
 		h.client.PostMessage(ev.Channel, slack.MsgOptionText(msg, false))
@@ -196,7 +199,7 @@ func (h *Handler) remove(ev *slackevents.AppMentionEvent) error {
 	matches := h.getMatches("remove", ev.Text)
 	resources := h.getResourcesFromCommaList(matches[0])
 	if len(resources) == 0 {
-		msg := fmt.Sprintf("<@%s> you must specify a resource", u.ID)
+		msg := fmt.Sprintf("%s you must specify a resource", h.getUserDisplay(u, true))
 		h.client.PostMessage(ev.Channel, slack.MsgOptionText(msg, false))
 		return nil
 	}
@@ -277,7 +280,7 @@ func (h *Handler) clear(ev *slackevents.AppMentionEvent) error {
 	matches := h.getMatches("clear", ev.Text)
 	resources := h.getResourcesFromCommaList(matches[0])
 	if len(resources) == 0 {
-		msg := fmt.Sprintf("<@%s> you must specify a resource", u.ID)
+		msg := fmt.Sprintf("%s you must specify a resource", h.getUserDisplay(u, true))
 		h.client.PostMessage(ev.Channel, slack.MsgOptionText(msg, false))
 		return nil
 	}
@@ -291,6 +294,68 @@ func (h *Handler) clear(ev *slackevents.AppMentionEvent) error {
 		msg := fmt.Sprintf("`%s` has been cleared", res)
 		h.client.PostMessage(ev.Channel, slack.MsgOptionText(msg, false))
 	}
+
+	return nil
+}
+
+func (h *Handler) kick(ev *slackevents.AppMentionEvent) error {
+	u, err := h.getUser(ev.User)
+	if err != nil {
+		log.Errorf("%+v", err)
+		h.client.PostMessage(ev.Channel, slack.MsgOptionText("I'm sorry, something went wrong inside of me.", false))
+		return err
+	}
+
+	matches := h.getMatches("kick", ev.Text)
+	if len(matches) != 1 {
+		msg := fmt.Sprintf("%s you must specify a user to kick", h.getUserDisplay(u, true))
+		h.client.PostMessage(ev.Channel, slack.MsgOptionText(msg, false))
+		return nil
+	}
+	uToKick, err := h.getUser(matches[0])
+	if err != nil {
+		log.Errorf("%+v", err)
+		msg := fmt.Sprintf("%s, I'm sorry, I don't know who that is.", h.getUserDisplay(u, true))
+		h.client.PostMessage(ev.Channel, slack.MsgOptionText(msg, false))
+		return err
+	}
+
+	count := 0
+	for _, res := range h.reservations.GetResources() {
+		pos, err := h.reservations.GetPosition(res, uToKick)
+		if err != nil {
+			h.client.PostMessage(ev.Channel, slack.MsgOptionText(err.Error(), false))
+			continue
+		}
+		if pos != 1 {
+			continue
+		}
+
+		err = h.reservations.Remove(res, uToKick)
+		if err != nil {
+			h.client.PostMessage(ev.Channel, slack.MsgOptionText(err.Error(), false))
+			continue
+		}
+		count++
+
+		cu, err := h.reservations.GetReservationForResource(res)
+		if err != nil {
+			h.client.PostMessage(ev.Channel, slack.MsgOptionText(err.Error(), false))
+			continue
+		}
+
+		msg := ""
+		if cu == nil {
+			msg = fmt.Sprintf("`%s` is now free", res)
+		} else {
+			msg = fmt.Sprintf("%s has released `%s`. %s, it's all yours. Get weird.", h.getUserDisplay(u, false), res, h.getUserDisplay(cu.User, true))
+		}
+
+		h.client.PostMessage(ev.Channel, slack.MsgOptionText(msg, false))
+	}
+
+	msg := fmt.Sprintf("%s has been kicked from %d channel(s)", h.getUserDisplay(uToKick, true), count)
+	h.client.PostMessage(ev.Channel, slack.MsgOptionText(msg, false))
 
 	return nil
 }
@@ -318,7 +383,6 @@ func (h *Handler) getCurrentResText(resource string, mention bool) (string, erro
 	}
 
 	msg := ""
-	verb := "is"
 	queue := []string{}
 
 	switch len(q) {
@@ -328,6 +392,7 @@ func (h *Handler) getCurrentResText(resource string, mention bool) (string, erro
 		user := h.getUserDisplay(q[0].User, mention)
 		msg = fmt.Sprintf("`%s` is currently reserved by %s", resource, user)
 	default:
+		verb := "is"
 		for _, next := range q[1:] {
 			queue = append(queue, "*"+next.User.Name+"*")
 		}
