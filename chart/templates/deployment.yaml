@@ -18,3 +18,5 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Chart.AppVersion }}"
           args: ["-token", {{ required "slackToken required" .Values.slackToken }},"-challenge", {{ required "slackVerificationToken required" .Values.slackVerificationToken }}]
+          ports:
+          - containerPort: 666
