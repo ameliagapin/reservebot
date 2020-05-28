@@ -128,3 +128,20 @@ func (r *Reservations) GetResources() []string {
 	}
 	return ret
 }
+
+func (r *Reservations) GetAllUsersInQueues() []*User {
+	set := map[*User]bool{}
+
+	for _, res := range r.Reservations {
+		for _, r := range res {
+			set[r.User] = true
+		}
+	}
+
+	ret := []*User{}
+	for u, _ := range set {
+		ret = append(ret, u)
+	}
+
+	return ret
+}

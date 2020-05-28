@@ -57,34 +57,43 @@ NAME                 HOSTS   ADDRESS                                            
 reservebot-release   *       2b2b5c59-reservebot-reserv-6661-1516092071.us-east-1.elb.amazonaws.com   80      14m
 ```
 
-# Commands
+# Usage
 
-#### `@reservebot reserve <resource>`
+@reservebot can be used via any channel that it has been added to or via DM. Regardless of where you invoke a command, there is a single reservation system that will be shared.
+
+When invoking via DM, the bot will alert other users via DM when necessary. E.g. Releasing a resource will notify the next user that has it.
+
+## Commands
+
+When invoking within a channel, you must @-mention the bot by adding `@reservebot` to the _beginning_ of your command.
+
+#### `reserve <resource>`
 
 This will reserve a given resource for the user. If the resource is currently reserved, the user will be placed into the queue. The resource should be an alphanumeric string with no spaces. A comma-separted list can be used to reserve multiple resources.
 
-#### `@reservebot release <resource>`
+#### `release <resource>`
 
 This will release a given resource. This command must be executed by the person who holds the resource. Upon release, the next person waiting in line will be notified that they now have the resource. The resource should be an alphanumeric string with no spaces. A comma-separted list can be used to reserve multiple resources.
 
-#### `@reservebot status`
+#### `status`
 
 This will provide a status of all active resources.
 
-#### `@reservebot status <resource>`
+#### `status <resource>`
 
 This will provide a status of a given resource.
 
-#### `@reservebot remove me from <resource>`
+#### `remove me from <resource>`
 
 This will remove the user from the queue for a resource.
 
-#### `@reservebot clear <resource>`
+#### `clear <resource>`
 This will clear the queue for a given resource and release it.
 
-#### `@reservebot kick <@user>`
+#### `<@user>`
 
 This will kick the mentioned user from _all_ resources they are holding. As the user is kicked from each resource, the queue will be advanced to the next user waiting.
 
-#### `@reservebot nuke`
-This will clear all reservations and all queues for all resources.
+#### `nuke`
+
+This will clear all reservations and all queues for all resources. This can only be done from a public channel, not a DM. There is no confirmation, so be careful.
