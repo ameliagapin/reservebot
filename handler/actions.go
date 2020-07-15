@@ -11,17 +11,18 @@ import (
 
 var (
 	actions = map[string]regexp.Regexp{
-		"hello":            *regexp.MustCompile(`hello.+`),
-		"reserve":          *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sreserve\s(.+)`),
-		"release":          *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\srelease\s(.+)`),
-		"clear":            *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sclear\s(.+)`),
-		"kick":             *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\skick\s\<\@([a-zA-Z0-9]+)\>`),
-		"remove":           *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sremove\sme\sfrom\s(.+)`),
-		"all_status":       *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus$`),
-		"single_status":    *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus\s(.+)`),
-		"my_status":        *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\smy\sstatus`),
-		"nuke":             *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\snuke$`),
-		"help":             *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\shelp$`),
+		"hello":         *regexp.MustCompile(`hello.+`),
+		"reserve":       *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sreserve\s(.+)`),
+		"release":       *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\srelease\s(.+)`),
+		"clear":         *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sclear\s(.+)`),
+		"kick":          *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\skick\s\<\@([a-zA-Z0-9]+)\>`),
+		"remove":        *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sremove\sme\sfrom\s(.+)`),
+		"all_status":    *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus$`),
+		"single_status": *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus\s(.+)`),
+		"my_status":     *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\smy\sstatus`),
+		"nuke":          *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\snuke$`),
+		"help":          *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\shelp$`),
+
 		"reserve_dm":       *regexp.MustCompile(`(?m)^reserve\s(.+)`),
 		"release_dm":       *regexp.MustCompile(`(?m)^release\s(.+)`),
 		"clear_dm":         *regexp.MustCompile(`(?m)^clear\s(.+)`),
@@ -32,8 +33,6 @@ var (
 		"my_status_dm":     *regexp.MustCompile(`(?m)^my\sstatus`),
 		"nuke_dm":          *regexp.MustCompile(`(?m)^nuke$`),
 		"help_dm":          *regexp.MustCompile(`(?m)^help$`),
-		// This regex was an attempt to pull all resources in comma separated list in repeating capture groups. It did not work
-		//"reserve" : *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sreserve\s([a-zA-Z0-9]+)(?:\,\s([a-zA-Z0-9]+))?`),
 	}
 )
 
