@@ -22,6 +22,7 @@ var (
 		"remove":           *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sremove\sme\sfrom\s(.+)`),
 		"all_status":       *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus$`),
 		"single_status":    *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus\s(.+)`),
+		"my_status":        *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\smy\sstatus`),
 		"nuke":             *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\snuke$`),
 		"help":             *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\shelp$`),
 		"reserve_dm":       *regexp.MustCompile(`(?m)^reserve\s(.+)`),
@@ -31,6 +32,7 @@ var (
 		"remove_dm":        *regexp.MustCompile(`(?m)^remove\sme\sfrom\s(.+)`),
 		"all_status_dm":    *regexp.MustCompile(`(?m)^status$`),
 		"single_status_dm": *regexp.MustCompile(`(?m)^status\s(.+)`),
+		"my_status_dm":     *regexp.MustCompile(`(?m)^my\sstatus`),
 		"nuke_dm":          *regexp.MustCompile(`(?m)^nuke$`),
 		"help_dm":          *regexp.MustCompile(`(?m)^help$`),
 		// This regex was an attempt to pull all resources in comma separated list in repeating capture groups. It did not work
@@ -104,7 +106,7 @@ func (h *Handler) CallbackEvent(event slackevents.EventsAPIEvent) error {
 		return h.nuke(ea)
 	case "nuke_dm":
 		return h.reply(ea, "You must perform a nuke action from a public channel", false)
-	case "all_status", "all_status_dm":
+	case "all_status", "all_status_dm", "my_status", "my_status_dm":
 		return h.allStatus(ea)
 	case "single_status", "single_status_dm":
 		return h.singleStatus(ea)
@@ -333,14 +335,35 @@ func (h *Handler) remove(ea *EventAction) error {
 
 func (h *Handler) allStatus(ea *EventAction) error {
 	ev := ea.Event
+	u, err := h.getUser(ev.User)
+	if err != nil {
+		log.Errorf("%+v", err)
+		h.errorReply(ev.Channel, "")
+		return err
+	}
+
+	userOnly := false
+	switch ea.Action {
+	case "my_status", "my_status_dm":
+		userOnly = true
+	}
+
 	all := h.reservations.GetResources()
 
 	if len(all) == 0 {
-		return h.reply(ea, "currently, there are no reservations. The world is your oyster.", false)
+		return h.reply(ea, "Currently, there are no reservations. The world is your oyster.", false)
 	}
 
 	resp := ""
 	for _, r := range all {
+		if userOnly {
+			// Discarding the err here. Func returns 0 when there's an err so we'll use that as an indication
+			// to just skip
+			pos, _ := h.reservations.GetPosition(r, u)
+			if pos <= 0 {
+				continue
+			}
+		}
 		msg, err := h.getCurrentResText(r, false)
 		if err != nil {
 			log.Errorf("%+v", err)
@@ -351,7 +374,11 @@ func (h *Handler) allStatus(ea *EventAction) error {
 		resp += msg + "\n"
 	}
 
-	h.reply(ea, resp, false)
+	if resp == "" {
+		resp = "Currently, there are no reservations. The world is your oyster."
+	}
+	// Only address the user if they asked for *their* status
+	h.reply(ea, resp, userOnly)
 
 	return nil
 }
@@ -656,6 +683,8 @@ When invoking within a channel, you must @-mention me by adding ` + "`@reservebo
 ` + "`release <resource>`" + ` This will release a given resource. This command must be executed by the person who holds the resource. Upon release, the next person waiting in line will be notified that they now have the resource. The resource should be an alphanumeric string with no spaces. A comma-separted list can be used to reserve multiple resources.
 
 ` + "`status`" + ` This will provide a status of all active resources.
+
+` + "`my status`" + ` This will provide a status of all active and queue reservations for the user.
 
 ` + "`status <resource>`" + ` This will provide a status of a given resource.
 

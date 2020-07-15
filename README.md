@@ -79,6 +79,10 @@ This will release a given resource. This command must be executed by the person 
 
 This will provide a status of all active resources.
 
+#### `my status`
+
+This will provide a status for all active and waiting resources for the user.
+
 #### `status <resource>`
 
 This will provide a status of a given resource.
