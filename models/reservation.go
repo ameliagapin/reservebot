@@ -84,6 +84,7 @@ func (r *Reservations) Clear(resource string) error {
 
 	return nil
 }
+
 func (r *Reservations) GetPosition(resource string, user *User) (int, error) {
 	queue, exists := r.Reservations[resource]
 	if !exists {
