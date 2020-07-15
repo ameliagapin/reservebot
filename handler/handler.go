@@ -21,7 +21,7 @@ var (
 		"kick":             *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\skick\s\<\@([a-zA-Z0-9]+)\>`),
 		"remove":           *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sremove\sme\sfrom\s(.+)`),
 		"all_status":       *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus$`),
-		"single_status":    *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus\s([a-zA-Z0-9]+)`),
+		"single_status":    *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus\s(.+)`),
 		"nuke":             *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\snuke$`),
 		"help":             *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\shelp$`),
 		"reserve_dm":       *regexp.MustCompile(`(?m)^reserve\s(.+)`),
@@ -30,7 +30,7 @@ var (
 		"kick_dm":          *regexp.MustCompile(`(?m)^kick\s\<\@([a-zA-Z0-9]+)\>`),
 		"remove_dm":        *regexp.MustCompile(`(?m)^remove\sme\sfrom\s(.+)`),
 		"all_status_dm":    *regexp.MustCompile(`(?m)^status$`),
-		"single_status_dm": *regexp.MustCompile(`(?m)^status\s([a-zA-Z0-9]+)`),
+		"single_status_dm": *regexp.MustCompile(`(?m)^status\s(.+)`),
 		"nuke_dm":          *regexp.MustCompile(`(?m)^nuke$`),
 		"help_dm":          *regexp.MustCompile(`(?m)^help$`),
 		// This regex was an attempt to pull all resources in comma separated list in repeating capture groups. It did not work
@@ -354,7 +354,7 @@ func (h *Handler) allStatus(ea *EventAction) error {
 
 func (h *Handler) singleStatus(ea *EventAction) error {
 	ev := ea.Event
-	resource := h.getMatches("single_status", ev.Text)
+	resource := h.getMatches(ea.Action, ev.Text)
 
 	if len(resource) == 0 {
 		h.errorReply(ev.Channel, "you must specify a resource")
