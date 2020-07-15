@@ -3,6 +3,7 @@ package models
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 )
@@ -126,6 +127,8 @@ func (r *Reservations) GetResources() []string {
 	for k, _ := range r.Reservations {
 		ret = append(ret, k)
 	}
+	sort.Strings(ret)
+
 	return ret
 }
 
