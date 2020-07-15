@@ -339,6 +339,7 @@ func (h *Handler) allStatus(ea *EventAction) error {
 		return h.reply(ea, "currently, there are no reservations. The world is your oyster.", false)
 	}
 
+	resp := ""
 	for _, r := range all {
 		msg, err := h.getCurrentResText(r, false)
 		if err != nil {
@@ -347,8 +348,11 @@ func (h *Handler) allStatus(ea *EventAction) error {
 			continue
 		}
 
-		h.reply(ea, msg, false)
+		resp += msg + "\n"
 	}
+
+	h.reply(ea, resp, false)
+
 	return nil
 }
 
