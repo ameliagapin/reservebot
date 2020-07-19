@@ -9,8 +9,9 @@ import (
 )
 
 type Reservation struct {
-	User *User
-	Time time.Time
+	User     *User
+	Resource *Resource
+	Time     time.Time
 }
 
 type Reservations struct {
@@ -125,7 +126,7 @@ func (r *Reservations) GetReservationForResource(resource string) (*Reservation,
 func (r *Reservations) GetResources() []string {
 	ret := []string{}
 
-	for k, _ := range r.Reservations {
+	for k := range r.Reservations {
 		ret = append(ret, k)
 	}
 	sort.Strings(ret)
