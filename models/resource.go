@@ -12,7 +12,7 @@ func ResourceKey(name, env string) string {
 }
 
 func (r *Resource) Key() string {
-	return ResourceKey(r.Env, r.Name)
+	return ResourceKey(r.Name, r.Env)
 }
 
 func (r *Resource) String() string {

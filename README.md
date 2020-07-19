@@ -61,6 +61,8 @@ reservebot-release   *       2b2b5c59-reservebot-reserv-6661-1516092071.us-east-
 
 @reservebot can be used via any channel that it has been added to or via DM. Regardless of where you invoke a command, there is a single reservation system that will be shared.
 
+@reservebot can handle multiple environments or namespaces. A resource is defined as `env|name`. If you omit the environment/namespace, the global environment will be used.
+
 When invoking via DM, the bot will alert other users via DM when necessary. E.g. Releasing a resource will notify the next user that has it.
 
 ## Commands
