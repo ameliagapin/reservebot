@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ameliagapin/reservebot/data"
 	"github.com/ameliagapin/reservebot/models"
 	log "github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
@@ -11,8 +12,8 @@ import (
 )
 
 type Handler struct {
-	client       *slack.Client
-	reservations *models.Reservations
+	client *slack.Client
+	data   data.Manager
 }
 
 type EventAction struct {
@@ -22,8 +23,8 @@ type EventAction struct {
 
 func New(client *slack.Client) *Handler {
 	return &Handler{
-		client:       client,
-		reservations: models.NewReservations(),
+		client: client,
+		data:   data.NewMemory(),
 	}
 }
 
@@ -111,8 +112,8 @@ func (h *Handler) sayHello(ea *EventAction) error {
 	return nil
 }
 
-func (h *Handler) getCurrentResText(resource string, mention bool) (string, error) {
-	q, err := h.reservations.GetQueueForResource(resource)
+func (h *Handler) getCurrentResText(resource *models.Resource, mention bool) (string, error) {
+	q, err := h.data.GetQueueForResource(resource.Name, resource.Env)
 	if err != nil {
 		return "", err
 	}
@@ -120,21 +121,21 @@ func (h *Handler) getCurrentResText(resource string, mention bool) (string, erro
 	msg := ""
 	queue := []string{}
 
-	switch len(q) {
+	switch len(q.Reservations) {
 	case 0:
 		msg = fmt.Sprintf("`%s` is free", resource)
 	case 1:
-		user := h.getUserDisplay(q[0].User, mention)
+		user := h.getUserDisplay(q.Reservations[0].User, mention)
 		msg = fmt.Sprintf("`%s` is currently reserved by %s", resource, user)
 	default:
 		verb := "is"
-		for _, next := range q[1:] {
+		for _, next := range q.Reservations[1:] {
 			queue = append(queue, h.getUserDisplay(next.User, false))
 		}
 		if len(queue) > 1 {
 			verb = "are"
 		}
-		user := h.getUserDisplay(q[0].User, mention)
+		user := h.getUserDisplay(q.Reservations[0].User, mention)
 		msg = fmt.Sprintf("`%s` is currently reserved by %s. %s %s waiting.", resource, user, strings.Join(queue, ", "), verb)
 	}
 
@@ -162,15 +163,34 @@ func (h *Handler) getMatches(action, text string) []string {
 	return ret
 }
 
-func (h *Handler) getResourcesFromCommaList(text string) []string {
-	ret := []string{}
+func (h *Handler) getResourcesFromCommaList(text string) []*models.Resource {
+	ret := []*models.Resource{}
 	split := strings.Split(text, ",")
 	for _, s := range split {
 		if len(s) > 0 {
-			ret = append(ret, strings.Trim(s, " `"))
+			if r := h.parseResource(strings.Trim(s, " `")); r != nil {
+				ret = append(ret, r)
+			}
 		}
 	}
 	return ret
+}
+
+func (h *Handler) parseResource(text string) *models.Resource {
+	split := strings.Split(text, "|")
+	switch len(split) {
+	case 1:
+		return &models.Resource{
+			Name: split[0],
+		}
+	case 2:
+		return &models.Resource{
+			Name: split[1],
+			Env:  split[0],
+		}
+	default:
+		return nil
+	}
 }
 
 func (h *Handler) getUser(uid string) (*models.User, error) {
@@ -186,7 +206,7 @@ func (h *Handler) getUser(uid string) (*models.User, error) {
 
 func (h *Handler) errorReply(channel, msg string) {
 	if msg == "" {
-		msg = "I'm sorry, something went wrong inside of me"
+		msg = msgIDontKnow
 	}
 	h.client.PostMessage(channel, slack.MsgOptionText(msg, false))
 }
@@ -230,7 +250,9 @@ func (h *Handler) sendDM(user *models.User, msg string) error {
 }
 
 const helpText = `
-Hello! I can be used via any channel that I have been added to or via DM. Regardless of where you invoke a command, there is a single reservation system that will be shared.
+Hello! I can be used via any channel that I have been added to or via DM. Regardless of where you invoke a command, there is a single reservation system that will be shared. 
+
+I can handle multiple environments or namespaces. A resource is defined as ` + "`" + `env|name` + "`" + `. If you omit the environment/namespace, the global environment will be used.
 
 When invoking via DM, I will alert other users via DM when necessary. E.g. Releasing a resource will notify the next user that has it.
 
