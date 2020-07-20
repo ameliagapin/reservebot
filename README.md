@@ -7,6 +7,8 @@ reservebot lets you and your team reserve shared resources and provides a queue 
 
 # Running
 
+### Locally on host machine
+
 You will need to set up an application in your Slack admin for `reservebot`.
 
 To run locally, you will need to use a tool to open up your machine to incoming requests. I suggest `ngrok`.
@@ -16,7 +18,8 @@ In one window:
 $ ngrok http 666
 ```
 
-### Locally on host machine
+ngrok will give you a URL to use for incoming requests.
+
 In a second window:
 ```
 $ go build reservebot.go
@@ -31,31 +34,29 @@ $ docker build -t reservebot .
 $ docker run [-d] -p 666:666 reservebot -token "<YOUR_SLACK_TOKEN>" -challenge "<SLACK_VERIFICATION_TOKEN>"
 ```
 
-Then in Slack, set up "event subscriptions" for `<ngrok url from your terminal>/events`.
+## Setting up Slack
 
-### Helm
-The helm installation assumes it will be running on an EKS cluster with an ALB configured.
+In Slack...
 
-```
-# to install
+1. Set up "event subscriptions" for `<url>/events`. Subscribe to these bot events:
+    - `app_mention` : `app_mentions:read`
+    - `message.im` : `im:history`
+1. Set up these "OAuth & Permissions":
+    - Bot Token Scopes
+        - `app_mentions:read`
+        - `channels:history`
+        - `channels:read`
+        - `chat:write`
+        - `chat:write.customize`
+        - `groups:history`
+        - `groups:read`
+        - `im:history`
+        - `im:read`
+        - `im:write`
+        - `users.profile:read`
+        - `usergroups:read`
+        - `users:read`
 
-$ helm install reservebot-release chart --namespace reservebot --set slackToken=<YOUR_SLACK_TOKEN> --set slackVerificationToken=<SLACK_VERIFICATION_TOKEN>
-
-# to upgrade (update)
-
-$ helm upgrade reservebot-release chart --namespace reservebot 
-
-# to upgrade the token values
-
-$ helm upgrade reservebot-release chart --namespace reservebot --set slackToken=<YOUR_SLACK_TOKEN> --set slackVerificationToken=<SLACK_VERIFICATION_TOKEN>
-
-# to find the url of the running service
-kubectl -n reservebot get ingresses
-
-# output 
-NAME                 HOSTS   ADDRESS                                                                  PORTS   AGE
-reservebot-release   *       2b2b5c59-reservebot-reserv-6661-1516092071.us-east-1.elb.amazonaws.com   80      14m
-```
 
 # Usage
 
