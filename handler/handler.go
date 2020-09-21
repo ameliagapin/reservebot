@@ -21,10 +21,10 @@ type EventAction struct {
 	Action string
 }
 
-func New(client *slack.Client) *Handler {
+func New(client *slack.Client, data data.Manager) *Handler {
 	return &Handler{
 		client: client,
-		data:   data.NewMemory(),
+		data:   data,
 	}
 }
 
@@ -81,6 +81,8 @@ func (h *Handler) CallbackEvent(event slackevents.EventsAPIEvent) error {
 		return h.allStatus(ea)
 	case "single_status", "single_status_dm":
 		return h.singleStatus(ea)
+	case "prune", "prune_dm":
+		return h.prune(ea)
 	case "help", "help_dm":
 		return h.reply(ea, helpText, false)
 	default:
@@ -250,7 +252,7 @@ func (h *Handler) sendDM(user *models.User, msg string) error {
 }
 
 const helpText = `
-Hello! I can be used via any channel that I have been added to or via DM. Regardless of where you invoke a command, there is a single reservation system that will be shared. 
+Hello! I can be used via any channel that I have been added to or via DM. Regardless of where you invoke a command, there is a single reservation system that will be shared.
 
 I can handle multiple environments or namespaces. A resource is defined as ` + "`" + `env|name` + "`" + `. If you omit the environment/namespace, the global environment will be used.
 
@@ -273,6 +275,8 @@ When invoking within a channel, you must @-mention me by adding ` + "`@reservebo
 ` + "`remove me from <resource>`" + ` This will remove the user from the queue for a resource.
 
 ` + "`clear <resource>`" + ` This will clear the queue for a given resource and release it.
+
+` + "`prune`" + ` This will clear all unreserved resources from memory.
 
 ` + "`kick <@user>`" + ` This will kick the mentioned user from _all_ resources they are holding. As the user is kicked from each resource, the queue will be advanced to the next user waiting.
 

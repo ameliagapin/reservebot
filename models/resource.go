@@ -1,10 +1,14 @@
 package models
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 type Resource struct {
-	Name string
-	Env  string
+	Name         string
+	Env          string
+	LastActivity time.Time
 }
 
 func ResourceKey(name, env string) string {

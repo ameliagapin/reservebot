@@ -6,7 +6,9 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"time"
 
+	"github.com/ameliagapin/reservebot/data"
 	"github.com/ameliagapin/reservebot/handler"
 	log "github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
@@ -36,7 +38,21 @@ func main() {
 
 	api := slack.New(token, slack.OptionDebug(debug))
 
-	handler := handler.New(api)
+	data := data.NewMemory()
+	// Prune inactive resources once an hour
+	go func() {
+		for {
+			time.Sleep(time.Hour)
+			err := data.PruneInactiveResources(168) // one week
+			if err != nil {
+				log.Errorf("Error pruning resources: %+v", err)
+			} else {
+				log.Infof("Pruned resources")
+			}
+		}
+	}()
+
+	handler := handler.New(api, data)
 
 	http.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
 		buf := new(bytes.Buffer)
@@ -79,4 +95,5 @@ func main() {
 	fmt.Println("[INFO] Server listening")
 
 	http.ListenAndServe(":666", nil)
+
 }

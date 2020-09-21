@@ -23,6 +23,7 @@ var (
 		"single_status": *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus\s(.+)`),
 		"my_status":     *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\smy\sstatus`),
 		"nuke":          *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\snuke$`),
+		"prune":         *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sprune$`),
 		"help":          *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\shelp$`),
 
 		"reserve_dm":       *regexp.MustCompile(`(?m)^reserve\s(.+)`),
@@ -34,6 +35,7 @@ var (
 		"single_status_dm": *regexp.MustCompile(`(?m)^status\s(.+)`),
 		"my_status_dm":     *regexp.MustCompile(`(?m)^my\sstatus`),
 		"nuke_dm":          *regexp.MustCompile(`(?m)^nuke$`),
+		"prune_dm":         *regexp.MustCompile(`(?m)^prune$`),
 		"help_dm":          *regexp.MustCompile(`(?m)^help$`),
 	}
 )
@@ -47,10 +49,11 @@ var (
 	msgMustSpecifyUser              = "you must specify a user to kick"
 	msgMustUseReleaseForY           = "you cannot remove yourself from the queue for `%s` because you currently have it. Please use `release` instead."
 	msgNoReservations               = "Like Anthony Bourdain :rip:, there are _no reservations_. Lose yourself in the freedom of a world waiting on your next move."
-	msgReservedButNotInQueue        = "%s reserved `%s`, but is currently not in the queue"
-	msgResourceDoesNotExistY        = "resource `%s` does not exist"
 	msgPeriodXHasItCurrently        = ". %s has it currently."
 	msgPeriodXStillHasIt            = ". %s still has it."
+	msgQueuesPruned                 = "I have removed all unreserved resources. Hope that's what you wanted. If not, it's too late now. Fool."
+	msgReservedButNotInQueue        = "%s reserved `%s`, but is currently not in the queue"
+	msgResourceDoesNotExistY        = "resource `%s` does not exist"
 	msgUknownUser                   = "I'm sorry, I don't know who that is. Do _you_ know that is?"
 	msgXClearedY                    = "%s cleared `%s`"
 	msgXCurrentlyHas                = "%s currently has `%s`"
@@ -539,6 +542,40 @@ func (h *Handler) nuke(ea *EventAction) error {
 
 	msg := fmt.Sprintf(msgXNukedQueue, h.getUserDisplay(u, true))
 	h.reply(ea, msg, false)
+
+	return nil
+}
+
+func (h *Handler) prune(ea *EventAction) error {
+	ev := ea.Event
+	_, err := h.getUser(ev.User)
+	if err != nil {
+		log.Errorf("%+v", err)
+		h.errorReply(ev.Channel, "")
+		return err
+	}
+
+	resources := h.data.GetResources()
+	for _, res := range resources {
+		q, err := h.data.GetQueueForResource(res.Name, res.Env)
+		if err != nil {
+			// this shouldn't happen, but there's nothing to alert the user to
+			log.Errorf("%+v", err)
+			continue
+		}
+
+		if q.HasReservations() {
+			continue
+		}
+
+		err = h.data.RemoveResource(res.Name, res.Env)
+		if err != nil {
+			log.Errorf("%+v", err)
+			continue
+		}
+	}
+
+	h.reply(ea, msgQueuesPruned, false)
 
 	return nil
 }
