@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/ameliagapin/reservebot/data"
 	"github.com/ameliagapin/reservebot/models"
@@ -127,17 +128,17 @@ func (h *Handler) getCurrentResText(resource *models.Resource, mention bool) (st
 	case 0:
 		msg = fmt.Sprintf("`%s` is free", resource)
 	case 1:
-		user := h.getUserDisplay(q.Reservations[0].User, mention)
+		user := h.getUserDisplayWithDuration(q.Reservations[0], mention)
 		msg = fmt.Sprintf("`%s` is currently reserved by %s", resource, user)
 	default:
 		verb := "is"
 		for _, next := range q.Reservations[1:] {
-			queue = append(queue, h.getUserDisplay(next.User, false))
+			queue = append(queue, h.getUserDisplayWithDuration(next, false))
 		}
 		if len(queue) > 1 {
 			verb = "are"
 		}
-		user := h.getUserDisplay(q.Reservations[0].User, mention)
+		user := h.getUserDisplayWithDuration(q.Reservations[0], mention)
 		msg = fmt.Sprintf("`%s` is currently reserved by %s. %s %s waiting.", resource, user, strings.Join(queue, ", "), verb)
 	}
 
@@ -150,6 +151,29 @@ func (h *Handler) getUserDisplay(user *models.User, mention bool) string {
 		ret = fmt.Sprintf("<@%s>", user.ID)
 	}
 	return ret
+}
+
+func (h *Handler) getUserDisplayWithDuration(reservation *models.Reservation, mention bool) string {
+	user := reservation.User
+	dur := getDuration(reservation.Time)
+
+	ret := fmt.Sprintf("*%s* (%s)", user.Name, dur)
+	if mention {
+		ret = fmt.Sprintf("<@%s> (%s)", user.ID, dur)
+	}
+	return ret
+}
+
+func getDuration(t time.Time) string {
+	duration := time.Since(t).Round(time.Minute)
+
+	if duration < 1 {
+		return "0m"
+	}
+
+	d := duration.String()
+
+	return d[:len(d)-2]
 }
 
 // getMatches retrieves all capture group values from a given text for regex action

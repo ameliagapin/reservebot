@@ -125,23 +125,28 @@ func (h *Handler) reserve(ea *EventAction) error {
 			h.errorReply(ev.Channel, msgIDontKnow)
 			return err
 		}
+		cu, err := h.data.GetReservationForResource(res.Name, res.Env)
+		if err != nil {
+			h.errorReply(ev.Channel, err.Error())
+			log.Errorf("%+v", err)
+			continue
+		}
 		switch pos {
 		case 0:
 			log.Errorf(msgReservedButNotInQueue, h.getUserDisplay(u, false), res)
 		case 1:
 			msg := fmt.Sprintf(msgYouCurrentlyHave, res)
 			if ev.ChannelType != "im" {
-				msg = fmt.Sprintf(msgXCurrentlyHas, h.getUserDisplay(u, true), res)
+				msg = fmt.Sprintf(msgXCurrentlyHas, h.getUserDisplayWithDuration(cu, true), res)
 			}
 			err = h.reply(ea, msg, false)
 			if err != nil {
 				log.Errorf("%+v", err)
 			}
 		default:
-			cu, err := h.data.GetReservationForResource(res.Name, res.Env)
 			c := ""
-			if err == nil && cu != nil {
-				c = fmt.Sprintf(msgPeriodXHasItCurrently, h.getUserDisplay(cu.User, false))
+			if cu != nil {
+				c = fmt.Sprintf(msgPeriodXHasItCurrently, h.getUserDisplayWithDuration(cu, false))
 			}
 			msg := fmt.Sprintf(msgYouAreNInLineForY, util.Ordinalize(pos), res, c)
 			err = h.reply(ea, msg, true)
@@ -303,7 +308,7 @@ func (h *Handler) remove(ea *EventAction) error {
 				// We only need to send one message in channel
 				current := msgPeriodItIsNowFree
 				if cu != nil {
-					current = fmt.Sprintf(msgPeriodXStillHasIt, h.getUserDisplay(cu.User, false))
+					current = fmt.Sprintf(msgPeriodXStillHasIt, h.getUserDisplayWithDuration(cu, false))
 				}
 				msg := fmt.Sprintf(msgXHasRemovedThemselvesFromYZ, h.getUserDisplay(u, true), res, current)
 				h.reply(ea, msg, false)
@@ -514,7 +519,7 @@ func (h *Handler) kick(ea *EventAction) error {
 			// We only need to send one message in channel
 			current := msgPeriodItIsNowFree
 			if cu != nil {
-				current = fmt.Sprintf(msgPeriodXHasItCurrently, h.getUserDisplay(cu.User, false))
+				current = fmt.Sprintf(msgPeriodXHasItCurrently, h.getUserDisplayWithDuration(cu, false))
 			}
 
 			msg := fmt.Sprintf(msgXHasBeenRemovedFromYZ, h.getUserDisplay(u, false), res, current)

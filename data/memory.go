@@ -89,7 +89,7 @@ func (m *Memory) Remove(u *models.User, name, env string) error {
 			pos++
 			if res.User.ID == u.ID {
 				idx = i
-				continue
+				break
 			}
 		}
 	}
@@ -104,9 +104,9 @@ func (m *Memory) Remove(u *models.User, name, env string) error {
 		for _, res := range m.Reservations {
 			if res.Resource.Key() == r.Key() {
 				res.Time = time.Now()
+				break
 			}
 		}
-
 	}
 
 	r.LastActivity = time.Now()
