@@ -7,6 +7,7 @@ import (
 
 	"github.com/ameliagapin/reservebot/err"
 	"github.com/ameliagapin/reservebot/models"
+	log "github.com/sirupsen/logrus"
 )
 
 type Memory struct {
@@ -45,6 +46,7 @@ func (m *Memory) Reserve(u *models.User, name, env string) error {
 	}
 
 	m.Reservations = append(m.Reservations, res)
+	r.LastActivity = time.Now()
 
 	return nil
 }
@@ -106,6 +108,8 @@ func (m *Memory) Remove(u *models.User, name, env string) error {
 		}
 
 	}
+
+	r.LastActivity = time.Now()
 
 	return nil
 }
@@ -343,6 +347,29 @@ func (m *Memory) ClearQueueForResource(name, env string) error {
 		}
 	}
 	m.Reservations = filtered
+	r.LastActivity = time.Now()
 
+	return nil
+}
+
+func (m *Memory) PruneInactiveResources(hours int) error {
+	resources := m.GetResources()
+	oldestTime := time.Now().Add(-time.Duration(hours) * time.Hour)
+
+	for _, r := range resources {
+		q, err := m.GetQueueForResource(r.Name, r.Env)
+		if err != nil {
+			log.Errorf("%+v", err)
+		}
+		if q.HasReservations() {
+			continue
+		}
+		if r.LastActivity.Before(oldestTime) {
+			err := m.RemoveResource(r.Name, r.Env)
+			if err != nil {
+				log.Errorf("%+v", err)
+			}
+		}
+	}
 	return nil
 }
