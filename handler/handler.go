@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ameliagapin/reservebot/data"
+	e "github.com/ameliagapin/reservebot/err"
 	"github.com/ameliagapin/reservebot/models"
 	log "github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
@@ -15,6 +16,8 @@ import (
 type Handler struct {
 	client *slack.Client
 	data   data.Manager
+
+	reqEnv bool
 }
 
 type EventAction struct {
@@ -22,10 +25,11 @@ type EventAction struct {
 	Action string
 }
 
-func New(client *slack.Client, data data.Manager) *Handler {
+func New(client *slack.Client, data data.Manager, reqEnv bool) *Handler {
 	return &Handler{
 		client: client,
 		data:   data,
+		reqEnv: reqEnv,
 	}
 }
 
@@ -189,33 +193,44 @@ func (h *Handler) getMatches(action, text string) []string {
 	return ret
 }
 
-func (h *Handler) getResourcesFromCommaList(text string) []*models.Resource {
+func (h *Handler) getResourcesFromCommaList(text string) ([]*models.Resource, error) {
 	ret := []*models.Resource{}
 	split := strings.Split(text, ",")
 	for _, s := range split {
 		if len(s) > 0 {
-			if r := h.parseResource(strings.Trim(s, " `")); r != nil {
+			r, err := h.parseResource(strings.Trim(s, " `"))
+			if err != nil {
+				return nil, err
+			}
+			if r != nil {
 				ret = append(ret, r)
 			}
 		}
 	}
-	return ret
+	if len(ret) == 0 {
+		return nil, e.NoResourceProvided
+	}
+
+	return ret, nil
 }
 
-func (h *Handler) parseResource(text string) *models.Resource {
+func (h *Handler) parseResource(text string) (*models.Resource, error) {
 	split := strings.Split(text, "|")
 	switch len(split) {
 	case 1:
+		if h.reqEnv {
+			return nil, e.InvalidResourceFormat
+		}
 		return &models.Resource{
 			Name: split[0],
-		}
+		}, nil
 	case 2:
 		return &models.Resource{
 			Name: split[1],
 			Env:  split[0],
-		}
+		}, nil
 	default:
-		return nil
+		return nil, nil
 	}
 }
 
@@ -228,6 +243,14 @@ func (h *Handler) getUser(uid string) (*models.User, error) {
 		Name: u.Name,
 		ID:   u.ID,
 	}, nil
+}
+
+func (h *Handler) handleGetResourceError(ea *EventAction, err error) {
+	msg := msgMustSpecifyResource
+	if err == e.InvalidResourceFormat {
+		msg = msgResourceImproperlyFormatted
+	}
+	h.errorReply(ea.Event.Channel, msg)
 }
 
 func (h *Handler) errorReply(channel, msg string) {

@@ -16,15 +16,17 @@ import (
 )
 
 var (
-	token     string
-	challenge string
-	debug     bool
+	token          string
+	challenge      string
+	debug          bool
+	reqResourceEnv bool
 )
 
 func main() {
 	flag.StringVar(&token, "token", "", "Slack API Token")
 	flag.StringVar(&challenge, "challenge", "", "Slack verification token")
 	flag.BoolVar(&debug, "debug", false, "Debug mode")
+	flag.BoolVar(&reqResourceEnv, "require-resource-env", true, "Require resource reservation to include environment")
 	flag.Parse()
 
 	if token == "" {
@@ -52,7 +54,7 @@ func main() {
 		}
 	}()
 
-	handler := handler.New(api, data)
+	handler := handler.New(api, data, reqResourceEnv)
 
 	http.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
 		buf := new(bytes.Buffer)

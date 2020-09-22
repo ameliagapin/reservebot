@@ -43,32 +43,34 @@ var (
 var (
 	msgAlreadyInAllQueues           = "Bruh, you are already in all specified queues"
 	msgIDontKnow                    = "I don't know what happened, but it wasn't good"
-	msgMustUseRemoveForY            = "you cannot release `%s` because you do not currently have it. Please use `remove` instead."
-	msgPeriodItIsNowFree            = ". It is now free."
 	msgMustSpecifyResource          = "you must specify a resource"
 	msgMustSpecifyUser              = "you must specify a user to kick"
+	msgMustSpecifyValidResource     = "you must specify a valid resource"
 	msgMustUseReleaseForY           = "you cannot remove yourself from the queue for `%s` because you currently have it. Please use `release` instead."
+	msgMustUseRemoveForY            = "you cannot release `%s` because you do not currently have it. Please use `remove` instead."
 	msgNoReservations               = "Like Anthony Bourdain :rip:, there are _no reservations_. Lose yourself in the freedom of a world waiting on your next move."
+	msgPeriodItIsNowFree            = ". It is now free."
 	msgPeriodXHasItCurrently        = ". %s has it currently."
 	msgPeriodXStillHasIt            = ". %s still has it."
 	msgQueuesPruned                 = "I have removed all unreserved resources. Hope that's what you wanted. If not, it's too late now. Fool."
 	msgReservedButNotInQueue        = "%s reserved `%s`, but is currently not in the queue"
 	msgResourceDoesNotExistY        = "resource `%s` does not exist"
+	msgResourceImproperlyFormatted  = "LOL u serious? Resources must be formatted as `<env>|<name>`. Example: `your_family|mom`"
 	msgUknownUser                   = "I'm sorry, I don't know who that is. Do _you_ know that is?"
 	msgXClearedY                    = "%s cleared `%s`"
 	msgXCurrentlyHas                = "%s currently has `%s`"
 	msgXHasBeenKickedFromNResources = "%s has been kicked from %d resouce(s)"
+	msgXHasBeenRemovedFromY         = "%s has been kicked from `%s`. It's all yours. Get weird."
 	msgXHasBeenRemovedFromYZ        = "%s has been removed from the queue for `%s`%s"
 	msgXHasReleasedYItIsYours       = "%s has released `%s`. It's all yours. Get weird."
-	msgXHasRemovedThemselvesFromYZ  = "%s has removed themselves from the queue for `%s`%s"
-	msgXHasBeenRemovedFromY         = "%s has been kicked from `%s`. It's all yours. Get weird."
 	msgXHasReleasedYZ               = "%s has released `%s`. %s"
+	msgXHasRemovedThemselvesFromYZ  = "%s has removed themselves from the queue for `%s`%s"
 	msgXItIsYours                   = "%s it's all yours. Get weird."
 	msgXKickedYouFromY              = "%s kicked you from `%s`"
-	msgYHasBeenCleared              = "`%s` has been cleared"
 	msgXNukedQueue                  = "%s nuked the whole thing. Yikes."
-	msgYouAreNotInLineForY          = "you are not in line for `%s`"
+	msgYHasBeenCleared              = "`%s` has been cleared"
 	msgYouAreNInLineForY            = "you are %s in line for `%s`%s"
+	msgYouAreNotInLineForY          = "you are not in line for `%s`"
 	msgYouCurrentlyHave             = "you currently have `%s`"
 	msgYouHaveNoReservations        = "you have no reservations"
 	msgYouHaveReleasedY             = "you have released `%s`"
@@ -95,9 +97,10 @@ func (h *Handler) reserve(ea *EventAction) error {
 	}
 
 	matches := h.getMatches(ea.Action, ev.Text)
-	resources := h.getResourcesFromCommaList(matches[0])
-	if len(resources) == 0 {
-		return h.reply(ea, msgMustSpecifyResource, true)
+	resources, err := h.getResourcesFromCommaList(matches[0])
+	if err != nil {
+		h.handleGetResourceError(ea, err)
+		return err
 	}
 
 	success := []*models.Resource{}
@@ -169,10 +172,10 @@ func (h *Handler) release(ea *EventAction) error {
 	}
 
 	matches := h.getMatches(ea.Action, ev.Text)
-	resources := h.getResourcesFromCommaList(matches[0])
-	if len(resources) == 0 {
-		h.reply(ea, msgMustSpecifyResource, true)
-		return nil
+	resources, err := h.getResourcesFromCommaList(matches[0])
+	if err != nil {
+		h.handleGetResourceError(ea, err)
+		return err
 	}
 
 	success := []*models.Resource{}
@@ -258,10 +261,10 @@ func (h *Handler) remove(ea *EventAction) error {
 	}
 
 	matches := h.getMatches(ea.Action, ev.Text)
-	resources := h.getResourcesFromCommaList(matches[0])
-	if len(resources) == 0 {
-		h.errorReply(ev.Channel, msgMustSpecifyResource)
-		return nil
+	resources, err := h.getResourcesFromCommaList(matches[0])
+	if err != nil {
+		h.handleGetResourceError(ea, err)
+		return err
 	}
 
 	for _, res := range resources {
@@ -382,7 +385,12 @@ func (h *Handler) singleStatus(ea *EventAction) error {
 		return nil
 	}
 
-	res := h.parseResource(r[0])
+	res, err := h.parseResource(r[0])
+	if err != nil {
+		// Probably don't need to insult the user for resource formatting here
+		h.errorReply(ev.Channel, msgMustSpecifyValidResource)
+		return nil
+	}
 
 	msg, err := h.getCurrentResText(res, false)
 	if err != nil {
@@ -410,10 +418,10 @@ func (h *Handler) clear(ea *EventAction) error {
 	}
 
 	matches := h.getMatches(ea.Action, ev.Text)
-	resources := h.getResourcesFromCommaList(matches[0])
-	if len(resources) == 0 {
-		h.errorReply(ev.Channel, msgMustSpecifyResource)
-		return nil
+	resources, err := h.getResourcesFromCommaList(matches[0])
+	if err != nil {
+		h.handleGetResourceError(ea, err)
+		return err
 	}
 
 	for _, res := range resources {
