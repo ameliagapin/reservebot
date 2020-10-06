@@ -62,9 +62,11 @@ In Slack...
 
 @reservebot can be used via any channel that it has been added to or via DM. Regardless of where you invoke a command, there is a single reservation system that will be shared.
 
-@reservebot can handle multiple environments or namespaces. A resource is defined as `env|name`. If you omit the environment/namespace, the global environment will be used.
+@reservebot can handle multiple environments or namespaces. A resource is defined as `env|name`. If you omit the environment/namespace and it is not required, the global environment will be used.
 
 When invoking via DM, the bot will alert other users via DM when necessary. E.g. Releasing a resource will notify the next user that has it.
+
+By default, resources must be in the format of `namespace|resource`. However, if you do not have a need to use namespaces, you can disable this at runtime using the argument `--require-resource-env=false`
 
 ## Commands
 

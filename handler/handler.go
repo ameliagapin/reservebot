@@ -301,7 +301,7 @@ func (h *Handler) sendDM(user *models.User, msg string) error {
 const helpText = `
 Hello! I can be used via any channel that I have been added to or via DM. Regardless of where you invoke a command, there is a single reservation system that will be shared.
 
-I can handle multiple environments or namespaces. A resource is defined as ` + "`" + `env|name` + "`" + `. If you omit the environment/namespace, the global environment will be used.
+I can handle multiple environments or namespaces. A resource is defined as ` + "`" + `env|name` + "`" + `.
 
 When invoking via DM, I will alert other users via DM when necessary. E.g. Releasing a resource will notify the next user that has it.
 
