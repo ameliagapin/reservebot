@@ -18,6 +18,7 @@ import (
 var (
 	token          string
 	challenge      string
+        listen_port    int
 	debug          bool
 	reqResourceEnv bool
 )
@@ -25,6 +26,7 @@ var (
 func main() {
 	flag.StringVar(&token, "token", "", "Slack API Token")
 	flag.StringVar(&challenge, "challenge", "", "Slack verification token")
+	flag.IntVar(&listen_port, "listen-port", 666, "Listen port")
 	flag.BoolVar(&debug, "debug", false, "Debug mode")
 	flag.BoolVar(&reqResourceEnv, "require-resource-env", true, "Require resource reservation to include environment")
 	flag.Parse()
@@ -94,8 +96,9 @@ func main() {
 		}
 	})
 
-	fmt.Println("[INFO] Server listening")
+	log.Infof("Server listening on port %d", listen_port)
 
-	http.ListenAndServe(":666", nil)
+	http.ListenAndServe(fmt.Sprintf(":%v", listen_port),  nil)
+
 
 }
