@@ -68,6 +68,8 @@ When invoking via DM, the bot will alert other users via DM when necessary. E.g.
 
 By default, resources must be in the format of `namespace|resource`. However, if you do not have a need to use namespaces, you can disable this at runtime using the argument `--require-resource-env=false`
 
+The default listen port is `666` but can be overridden with `--listen-port=667`
+
 ## Commands
 
 When invoking within a channel, you must @-mention the bot by adding `@reservebot` to the _beginning_ of your command.

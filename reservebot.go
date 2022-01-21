@@ -18,7 +18,7 @@ import (
 var (
 	token          string
 	challenge      string
-        listenPort     int
+	listenPort     int
 	debug          bool
 	reqResourceEnv bool
 )
@@ -98,7 +98,6 @@ func main() {
 
 	log.Infof("Server listening on port %d", listenPort)
 
-	http.ListenAndServe(fmt.Sprintf(":%v", listenPort),  nil)
-
+	http.ListenAndServe(fmt.Sprintf(":%v", listenPort), nil)
 
 }
