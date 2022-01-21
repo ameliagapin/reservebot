@@ -18,6 +18,7 @@ import (
 var (
 	token          string
 	challenge      string
+        listenPort     int
 	debug          bool
 	enablePrune    bool
 	enableNuke     bool
@@ -27,6 +28,7 @@ var (
 func main() {
 	flag.StringVar(&token, "token", "", "Slack API Token")
 	flag.StringVar(&challenge, "challenge", "", "Slack verification token")
+	flag.IntVar(&listenPort, "listen-port", 666, "Listen port")
 	flag.BoolVar(&debug, "debug", false, "Debug mode")
         flag.BoolVar(&enablePrune, "enable-prune", true, "Enable prune command")
         flag.BoolVar(&enableNuke, "enable-nuke", true, "Enable nuke command")
@@ -98,8 +100,9 @@ func main() {
 		}
 	})
 
-	fmt.Println("[INFO] Server listening")
+	log.Infof("Server listening on port %d", listenPort)
 
-	http.ListenAndServe(":666", nil)
+	http.ListenAndServe(fmt.Sprintf(":%v", listenPort),  nil)
+
 
 }
