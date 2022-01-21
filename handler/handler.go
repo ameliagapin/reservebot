@@ -76,7 +76,7 @@ func (h *Handler) CallbackEvent(event slackevents.EventsAPIEvent) error {
 		return h.remove(ea)
 	case "clear", "clear_dm":
 		return h.clear(ea)
-	case "kick", "kick_dm":
+	case "kick", "kick_empty", "kick_nonuser", "kick_dm":
 		return h.kick(ea)
 	case "nuke":
 		return h.nuke(ea)
