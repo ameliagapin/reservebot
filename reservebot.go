@@ -20,8 +20,6 @@ var (
 	challenge      string
         listenPort     int
 	debug          bool
-	enablePrune    bool
-	enableNuke     bool
 	reqResourceEnv bool
 )
 
@@ -30,8 +28,6 @@ func main() {
 	flag.StringVar(&challenge, "challenge", "", "Slack verification token")
 	flag.IntVar(&listenPort, "listen-port", 666, "Listen port")
 	flag.BoolVar(&debug, "debug", false, "Debug mode")
-        flag.BoolVar(&enablePrune, "enable-prune", true, "Enable prune command")
-        flag.BoolVar(&enableNuke, "enable-nuke", true, "Enable nuke command")
 	flag.BoolVar(&reqResourceEnv, "require-resource-env", true, "Require resource reservation to include environment")
 	flag.Parse()
 
