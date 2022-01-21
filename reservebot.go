@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/ameliagapin/reservebot/data"
@@ -20,6 +21,7 @@ var (
 	challenge      string
         listenPort     int
 	debug          bool
+	admins         string
 	reqResourceEnv bool
 )
 
@@ -28,6 +30,7 @@ func main() {
 	flag.StringVar(&challenge, "challenge", "", "Slack verification token")
 	flag.IntVar(&listenPort, "listen-port", 666, "Listen port")
 	flag.BoolVar(&debug, "debug", false, "Debug mode")
+        flag.StringVar(&admins, "admins", "", "Turn on administrative commands for specific admins, comma separated list")
 	flag.BoolVar(&reqResourceEnv, "require-resource-env", true, "Require resource reservation to include environment")
 	flag.Parse()
 
@@ -38,6 +41,16 @@ func main() {
 	if challenge == "" {
 		log.Error("Slack verification token is required")
 		return
+	}
+
+	// Convert admins list into slice
+	var admins_ary []string
+	if len(admins) > 0 {
+		if strings.Contains(admins, ",") {
+			admins_ary = strings.Split(admins, ",")
+		} else {
+			admins_ary = append(admins_ary, admins)
+		}
 	}
 
 	api := slack.New(token, slack.OptionDebug(debug))
@@ -56,7 +69,7 @@ func main() {
 		}
 	}()
 
-	handler := handler.New(api, data, reqResourceEnv)
+	handler := handler.New(api, data, reqResourceEnv, admins_ary)
 
 	http.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
 		buf := new(bytes.Buffer)

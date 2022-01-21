@@ -80,6 +80,15 @@ var (
 	msgYouHaveRemovedYourselfFromY  = "you have removed yourself from `%s`"
 )
 
+func inslice(arr []string, str string) bool {
+	for _, a := range arr {
+		if a == str {
+			return true
+		}
+	}
+	return false
+}
+
 func (h *Handler) getAction(text string) string {
 	for a, r := range actions {
 		if r.MatchString(text) {
@@ -468,77 +477,81 @@ func (h *Handler) kick(ea *EventAction) error {
 		return err
 	}
 
-	matches := h.getMatches(ea.Action, ev.Text)
-	if len(matches) != 1 {
-		h.reply(ea, msgMustSpecifyUser, true)
-		return nil
-	}
-	uToKick, err := h.getUser(matches[0])
-	if err != nil {
-		log.Errorf("%+v", err)
-		h.reply(ea, msgUknownUser, true)
-		return err
-	}
-
-	count := 0
-	for _, res := range h.data.GetResources() {
-		pos, err := h.data.GetPosition(uToKick, res.Name, res.Env)
+	if ((len(h.admins) == 0) || (inslice(h.admins, u.Name))) {
+		matches := h.getMatches(ea.Action, ev.Text)
+		if len(matches) != 1 {
+			h.reply(ea, msgMustSpecifyUser, true)
+			return nil
+		}
+		uToKick, err := h.getUser(matches[0])
 		if err != nil {
-			if err == e.NotInQueue {
-				// this error does not need to be reported to the user
+			log.Errorf("%+v", err)
+			h.reply(ea, msgUknownUser, true)
+			return err
+		}
+
+		count := 0
+		for _, res := range h.data.GetResources() {
+			pos, err := h.data.GetPosition(uToKick, res.Name, res.Env)
+			if err != nil {
+				if err == e.NotInQueue {
+					// this error does not need to be reported to the user
+					continue
+				}
+				h.errorReply(ev.Channel, err.Error())
 				continue
 			}
-			h.errorReply(ev.Channel, err.Error())
-			continue
-		}
-		if pos != 1 {
-			continue
-		}
-
-		err = h.data.Remove(uToKick, res.Name, res.Env)
-		if err != nil {
-			if err == e.NotInQueue {
-				// this error does not need to be reported to the user
+			if pos != 1 {
 				continue
 			}
-			h.errorReply(ev.Channel, err.Error())
-			continue
-		}
-		count++
 
-		cu, err := h.data.GetReservationForResource(res.Name, res.Env)
-		if err != nil {
-			h.errorReply(ev.Channel, err.Error())
-			continue
-		}
+			err = h.data.Remove(uToKick, res.Name, res.Env)
+			if err != nil {
+				if err == e.NotInQueue {
+					// this error does not need to be reported to the user
+					continue
+				}
+				h.errorReply(ev.Channel, err.Error())
+				continue
+			}
+			count++
 
-		if ev.ChannelType == "im" {
-			// We will need to confirm to the user
-			h.reply(ea, fmt.Sprintf(msgYouHaveRemovedXFromY, h.getUserDisplay(uToKick, true), res), false)
-
-			// If someone now has the resource, we must alert them
-			if cu != nil {
-				msg := fmt.Sprintf(msgXHasBeenRemovedFromY, h.getUserDisplay(uToKick, false), res)
-				h.announce(ea, cu.User, msg)
+			cu, err := h.data.GetReservationForResource(res.Name, res.Env)
+			if err != nil {
+				h.errorReply(ev.Channel, err.Error())
+				continue
 			}
 
-			// Alert user who was kicked
-			msg := fmt.Sprintf(msgXKickedYouFromY, h.getUserDisplay(u, true), res)
-			h.announce(ea, uToKick, msg)
-		} else {
-			// We only need to send one message in channel
-			current := msgPeriodItIsNowFree
-			if cu != nil {
-				current = fmt.Sprintf(msgPeriodXHasItCurrently, h.getUserDisplayWithDuration(cu, false))
-			}
+			if ev.ChannelType == "im" {
+				// We will need to confirm to the user
+				h.reply(ea, fmt.Sprintf(msgYouHaveRemovedXFromY, h.getUserDisplay(uToKick, true), res), false)
 
-			msg := fmt.Sprintf(msgXHasBeenRemovedFromYZ, h.getUserDisplay(u, false), res, current)
-			h.reply(ea, msg, false)
+				// If someone now has the resource, we must alert them
+				if cu != nil {
+					msg := fmt.Sprintf(msgXHasBeenRemovedFromY, h.getUserDisplay(uToKick, false), res)
+					h.announce(ea, cu.User, msg)
+				}
+
+				// Alert user who was kicked
+				msg := fmt.Sprintf(msgXKickedYouFromY, h.getUserDisplay(u, true), res)
+				h.announce(ea, uToKick, msg)
+			} else {
+				// We only need to send one message in channel
+				current := msgPeriodItIsNowFree
+				if cu != nil {
+					current = fmt.Sprintf(msgPeriodXHasItCurrently, h.getUserDisplayWithDuration(cu, false))
+				}
+
+				msg := fmt.Sprintf(msgXHasBeenRemovedFromYZ, h.getUserDisplay(u, false), res, current)
+				h.reply(ea, msg, false)
+			}
 		}
+
+		msg := fmt.Sprintf(msgXHasBeenKickedFromNResources, h.getUserDisplay(uToKick, true), count)
+		h.reply(ea, msg, false)
+	} else {
+		h.reply(ea, "Error, your user is not authorized to run the command `kick`.", false)
 	}
-
-	msg := fmt.Sprintf(msgXHasBeenKickedFromNResources, h.getUserDisplay(uToKick, true), count)
-	h.reply(ea, msg, false)
 
 	// User will need to be alerted
 	return nil
@@ -553,49 +566,65 @@ func (h *Handler) nuke(ea *EventAction) error {
 		return err
 	}
 
-	h.data = data.NewMemory()
+	if ((len(h.admins) == 0) || (inslice(h.admins, u.Name))) {
+		h.data = data.NewMemory()
 
-	msg := fmt.Sprintf(msgXNukedQueue, h.getUserDisplay(u, true))
-	h.reply(ea, msg, false)
+		msg := fmt.Sprintf(msgXNukedQueue, h.getUserDisplay(u, true))
+		h.reply(ea, msg, false)
+	} else {
+		h.reply(ea, "Error, your user is not authorized to run the command `nuke`.", false)
+	}
 
 	return nil
 }
 
 func (h *Handler) prune(ea *EventAction) error {
 	ev := ea.Event
-	_, err := h.getUser(ev.User)
+	u, err := h.getUser(ev.User)
 	if err != nil {
 		log.Errorf("%+v", err)
 		h.errorReply(ev.Channel, "")
 		return err
 	}
 
-	resources := h.data.GetResources()
-	for _, res := range resources {
-		q, err := h.data.GetQueueForResource(res.Name, res.Env)
-		if err != nil {
-			// this shouldn't happen, but there's nothing to alert the user to
-			log.Errorf("%+v", err)
-			continue
+	if ((len(h.admins) == 0) || (inslice(h.admins, u.Name))) {
+		resources := h.data.GetResources()
+		for _, res := range resources {
+			q, err := h.data.GetQueueForResource(res.Name, res.Env)
+			if err != nil {
+				// this shouldn't happen, but there's nothing to alert the user to
+				log.Errorf("%+v", err)
+				continue
+			}
+
+			if q.HasReservations() {
+				continue
+			}
+
+			err = h.data.RemoveResource(res.Name, res.Env)
+			if err != nil {
+				log.Errorf("%+v", err)
+				continue
+			}
 		}
 
-		if q.HasReservations() {
-			continue
-		}
-
-		err = h.data.RemoveResource(res.Name, res.Env)
-		if err != nil {
-			log.Errorf("%+v", err)
-			continue
-		}
+		h.reply(ea, msgQueuesPruned, false)
+	} else {
+		h.reply(ea, "Error, your user is not authorized to run the command `prune`.", false)
 	}
-
-	h.reply(ea, msgQueuesPruned, false)
 
 	return nil
 }
 
 func (h *Handler) help(ea *EventAction) error {
+	ev := ea.Event
+	u, err := h.getUser(ev.User)
+	if err != nil {
+		log.Errorf("%+v", err)
+		h.errorReply(ev.Channel, "")
+		return err
+	}
+
 	var helpText = "Hello! I can be used via any channel that I have been added to or via DM. Regardless of where you invoke a command, there is a single reservation system that will be shared.\n\n"
 	if h.reqEnv == true {
 		helpText += "I can handle multiple environments or namespaces. A resource is defined as " + TICK + "env|name" + TICK + ".\n\n"
@@ -614,9 +643,13 @@ func (h *Handler) help(ea *EventAction) error {
 	helpText += TICK + "status <resource>" + TICK + " This will provide a status of a given resource.\n\n"
 	helpText += TICK + "remove me from <resource>" + TICK + " This will remove the user from the queue for a resource.\n\n"
 	helpText += TICK + "clear <resource>" + TICK + " This will clear the queue for a given resource and release it.\n\n"
-	helpText += TICK + "prune <resource>" + TICK + " This will clear all unreserved resources from memory.\n\n"
-	helpText += TICK + "kick <@user>" + TICK + " This will kick the mentioned user from _all_ resources they are holding. As the user is kicked from each resource, the queue will be advanced to the next user waiting.\n\n"
-	helpText += TICK + "nuke" + TICK + " This will clear all reservations and all queues for all resources. This can only be done from a public channel, not a DM. There is no confirmation, so be careful.\n\n"
+
+	// if there are no admins specified or there are and the user is in the list then show these options
+	if ((len(h.admins) == 0) || (inslice(h.admins, u.Name))) {
+		helpText += TICK + "prune <resource>" + TICK + " This will clear all unreserved resources from memory.\n\n"
+		helpText += TICK + "kick <@user>" + TICK + " This will kick the mentioned user from _all_ resources they are holding. As the user is kicked from each resource, the queue will be advanced to the next user waiting.\n\n"
+		helpText += TICK + "nuke" + TICK + " This will clear all reservations and all queues for all resources. This can only be done from a public channel, not a DM. There is no confirmation, so be careful.\n\n"
+	}
 
 	h.reply(ea, helpText, false)
 	return nil

@@ -18,6 +18,7 @@ type Handler struct {
 	data   data.Manager
 
 	reqEnv bool
+	admins []string
 }
 
 type EventAction struct {
@@ -25,11 +26,12 @@ type EventAction struct {
 	Action string
 }
 
-func New(client *slack.Client, data data.Manager, reqEnv bool) *Handler {
+func New(client *slack.Client, data data.Manager, reqEnv bool, admins []string) *Handler {
 	return &Handler{
 		client: client,
 		data:   data,
 		reqEnv: reqEnv,
+		admins: admins,
 	}
 }
 
