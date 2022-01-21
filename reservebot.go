@@ -19,8 +19,8 @@ var (
 	token          string
 	challenge      string
 	debug          bool
-	enable_prune   bool
-	enable_nuke    bool
+	enablePrune    bool
+	enableNuke     bool
 	reqResourceEnv bool
 )
 
@@ -28,8 +28,8 @@ func main() {
 	flag.StringVar(&token, "token", "", "Slack API Token")
 	flag.StringVar(&challenge, "challenge", "", "Slack verification token")
 	flag.BoolVar(&debug, "debug", false, "Debug mode")
-        flag.BoolVar(&enable_prune, "enable-prune", true, "Enable prune command")
-        flag.BoolVar(&enable_nuke, "enable-nuke", true, "Enable nuke command")
+        flag.BoolVar(&enablePrune, "enable-prune", true, "Enable prune command")
+        flag.BoolVar(&enableNuke, "enable-nuke", true, "Enable nuke command")
 	flag.BoolVar(&reqResourceEnv, "require-resource-env", true, "Require resource reservation to include environment")
 	flag.Parse()
 
