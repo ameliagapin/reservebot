@@ -11,6 +11,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const TICK = "`"
+
 var (
 	actions = map[string]regexp.Regexp{
 		"hello":         *regexp.MustCompile(`hello.+`),
@@ -590,5 +592,32 @@ func (h *Handler) prune(ea *EventAction) error {
 
 	h.reply(ea, msgQueuesPruned, false)
 
+	return nil
+}
+
+func (h *Handler) help(ea *EventAction) error {
+	var helpText = "Hello! I can be used via any channel that I have been added to or via DM. Regardless of where you invoke a command, there is a single reservation system that will be shared.\n\n"
+	if h.reqEnv == true {
+		helpText += "I can handle multiple environments or namespaces. A resource is defined as " + TICK + "env|name" + TICK + ".\n\n"
+	} else {
+		helpText += "A resource is defined as " + TICK + "name" + TICK + ".\n\n"
+	}
+
+	helpText += "When invoking via DM, I will alert other users via DM when necessary. E.g. Releasing a resource will notify the next user that has it.\n\n"
+	helpText += "*Commands*\n\n"
+	helpText += "When invoking within a channel, you must @-mention me by adding " + TICK + "@reservebot" + TICK + "to the _beginning_ of your command.\n\n"
+
+	helpText += TICK + "reserve <resource>" + TICK + " This will reserve a given resource for the user. If the resource is currently reserved, the user will be placed into the queue. The resource should be an alphanumeric string with no spaces. A comma-separted list can be used to reserve multiple resources.\n\n"
+	helpText += TICK + "release <resource>" + TICK + " This will release a given resource. This command must be executed by the person who holds the resource. Upon release, the next person waiting in line will be notified that they now have the resource. The resource should be an alphanumeric string with no spaces. A comma-separted list can be used to reserve multiple resources.\n\n"
+	helpText += TICK + "status" + TICK + " This will provide a status of all active resources.\n\n"
+	helpText += TICK + "my status" + TICK + " This will provide a status of all active and queue reservations for the user.\n\n"
+	helpText += TICK + "status <resource>" + TICK + " This will provide a status of a given resource.\n\n"
+	helpText += TICK + "remove me from <resource>" + TICK + " This will remove the user from the queue for a resource.\n\n"
+	helpText += TICK + "clear <resource>" + TICK + " This will clear the queue for a given resource and release it.\n\n"
+	helpText += TICK + "prune <resource>" + TICK + " This will clear all unreserved resources from memory.\n\n"
+	helpText += TICK + "kick <@user>" + TICK + " This will kick the mentioned user from _all_ resources they are holding. As the user is kicked from each resource, the queue will be advanced to the next user waiting.\n\n"
+	helpText += TICK + "nuke" + TICK + " This will clear all reservations and all queues for all resources. This can only be done from a public channel, not a DM. There is no confirmation, so be careful.\n\n"
+
+	h.reply(ea, helpText, false)
 	return nil
 }
