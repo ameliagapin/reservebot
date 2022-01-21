@@ -298,6 +298,7 @@ func (h *Handler) sendDM(user *models.User, msg string) error {
 	return err
 }
 
+
 const helpText = `
 Hello! I can be used via any channel that I have been added to or via DM. Regardless of where you invoke a command, there is a single reservation system that will be shared.
 
