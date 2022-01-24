@@ -6,13 +6,12 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	"os"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/ameliagapin/reservebot/data"
 	"github.com/ameliagapin/reservebot/handler"
+	"github.com/ameliagapin/reservebot/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
@@ -27,42 +26,13 @@ var (
 	reqResourceEnv bool
 )
 
-func LookupEnvOrString(key string, defaultVal string) string {
-	if val, ok := os.LookupEnv(key); ok {
-		return val
-	}
-	return defaultVal
-}
-
-func LookupEnvOrInt(key string, defaultVal int) int {
-	if val, ok := os.LookupEnv(key); ok {
-		v, err := strconv.Atoi(val)
-		if err != nil {
-			log.Fatalf("LookupEnvOrInt[%s]: %v", key, err)
-		}
-		return v
-	}
-	return defaultVal
-}
-
-func LookupEnvOrBool(key string, defaultVal bool) bool {
-	if val, ok := os.LookupEnv(key); ok {
-		if val == "true" {
-			return true
-		} else {
-			return false
-		}
-	}
-	return defaultVal
-}
-
 func main() {
-	flag.StringVar(&token, "token", LookupEnvOrString("SLACK_TOKEN", ""), "Slack API Token")
-	flag.StringVar(&challenge, "challenge", LookupEnvOrString("SLACK_CHALLENGE", ""), "Slack verification token")
-	flag.IntVar(&listenPort, "listen-port", LookupEnvOrInt("LISTEN_PORT", 666), "Listen port")
-	flag.BoolVar(&debug, "debug", LookupEnvOrBool("DEBUG", false), "Debug mode")
-	flag.StringVar(&admins, "admins", LookupEnvOrString("SLACK_ADMINS", ""), "Turn on administrative commands for specific admins, comma separated list")
-	flag.BoolVar(&reqResourceEnv, "require-resource-env", LookupEnvOrBool("REQUIRE_RESOURCE_ENV", true), "Require resource reservation to include environment")
+	flag.StringVar(&token, "token", util.LookupEnvOrString("SLACK_TOKEN", ""), "Slack API Token")
+	flag.StringVar(&challenge, "challenge", util.LookupEnvOrString("SLACK_CHALLENGE", ""), "Slack verification token")
+	flag.IntVar(&listenPort, "listen-port", util.LookupEnvOrInt("LISTEN_PORT", 666), "Listen port")
+	flag.BoolVar(&debug, "debug", util.LookupEnvOrBool("DEBUG", false), "Debug mode")
+	flag.StringVar(&admins, "admins", util.LookupEnvOrString("SLACK_ADMINS", ""), "Turn on administrative commands for specific admins, comma separated list")
+	flag.BoolVar(&reqResourceEnv, "require-resource-env", util.LookupEnvOrBool("REQUIRE_RESOURCE_ENV", true), "Require resource reservation to include environment")
 	flag.Parse()
 
 	// Make sure required vars are set
@@ -73,16 +43,6 @@ func main() {
 	if challenge == "" {
 		log.Error("Slack verification token is required")
 		return
-	}
-
-	// Convert admins list into slice
-	var admins_ary []string
-	if len(admins) > 0 {
-		if strings.Contains(admins, ",") {
-			admins_ary = strings.Split(admins, ",")
-		} else {
-			admins_ary = append(admins_ary, admins)
-		}
 	}
 
 	api := slack.New(token, slack.OptionDebug(debug))
@@ -101,7 +61,7 @@ func main() {
 		}
 	}()
 
-	handler := handler.New(api, data, reqResourceEnv, admins_ary)
+	handler := handler.New(api, data, reqResourceEnv, utils.parseAdmins(admins))
 
 	http.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
 		buf := new(bytes.Buffer)
