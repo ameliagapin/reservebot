@@ -74,8 +74,10 @@ func (h *Handler) CallbackEvent(event slackevents.EventsAPIEvent) error {
 		return h.reserve(ea)
 	case "release", "release_dm":
 		return h.release(ea)
-	case "remove", "remove_dm":
-		return h.remove(ea)
+	case "removeme", "removeme_dm":
+		return h.removeme(ea)
+	case "removeresource", "removeresource_dm":
+		return h.removeresource(ea)
 	case "clear", "clear_dm":
 		return h.clear(ea)
 	case "kick", "kick_empty", "kick_nonuser", "kick_dm":

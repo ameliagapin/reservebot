@@ -23,6 +23,7 @@ var (
 	debug          bool
 	admins         string
 	reqResourceEnv bool
+	enablePrune    bool
 )
 
 func main() {
@@ -32,6 +33,7 @@ func main() {
 	flag.BoolVar(&debug, "debug", util.LookupEnvOrBool("DEBUG", false), "Debug mode")
 	flag.StringVar(&admins, "admins", util.LookupEnvOrString("SLACK_ADMINS", ""), "Turn on administrative commands for specific admins, comma separated list")
 	flag.BoolVar(&reqResourceEnv, "require-resource-env", util.LookupEnvOrBool("REQUIRE_RESOURCE_ENV", true), "Require resource reservation to include environment")
+	flag.BoolVar(&enablePrune, "enable-prune", util.LookupEnvOrBool("PRUNE", true), "Enable pruning available resources automatically")
 	flag.Parse()
 
 	// Make sure required vars are set
@@ -47,18 +49,25 @@ func main() {
 	api := slack.New(token, slack.OptionDebug(debug))
 
 	data := data.NewMemory()
-	// Prune inactive resources once an hour
-	go func() {
-		for {
-			time.Sleep(time.Hour)
-			err := data.PruneInactiveResources(168) // one week
-			if err != nil {
-				log.Errorf("Error pruning resources: %+v", err)
-			} else {
-				log.Infof("Pruned resources")
+
+	if enablePrune {
+		// Prune inactive resources once an hour
+		log.Infof("Automatic Pruning is enabled.")
+		go func() {
+			for {
+				time.Sleep(time.Hour)
+				err := data.PruneInactiveResources(168) // one week
+				if err != nil {
+					log.Errorf("Error pruning resources: %+v", err)
+				} else {
+					log.Infof("Pruned resources")
+				}
 			}
-		}
-	}()
+		}()
+
+	} else {
+		log.Infof("Automatic pruning is disabled.")
+	}
 
 	handler := handler.New(api, data, reqResourceEnv, util.ParseAdmins(admins))
 

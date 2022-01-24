@@ -29,7 +29,7 @@ $ ./reservebot -token "<YOUR_SLACK_TOKEN>" -challenge "<SLACK_VERIFICATION_TOKEN
 Then in Slack, set up "event subscriptions" for `<ngrok url from your terminal>/events`.
 
 ### Docker
-The docker run uses environment variables. The following are supported - `SLACK_TOKEN`, `SLACK_CHALLENGE`, `LISTEN_PORT`, `DEBUG`, `SLACK_ADMINS`, `REQUIRE_RESOURCE_ENV`
+The docker run uses environment variables. The following are supported - `SLACK_TOKEN`, `SLACK_CHALLENGE`, `LISTEN_PORT`, `DEBUG`, `SLACK_ADMINS`, `REQUIRE_RESOURCE_ENV`, `PRUNE`
 
 Run docker as follows:
 ```
@@ -74,6 +74,8 @@ By default, resources must be in the format of `namespace|resource`. However, if
 The default listen port is `666` but can be overridden with `--listen-port=667`
 
 `--admins=<slackuser1>,<slackuser2>` can be specified to restrict the `prune`, `nuke`, and `kick` commands to people on this list. This is to prevent anyone from accidentally running these commands.  Not specifying `--admins` allows all users to run these commands.
+
+Pruning is enabled by default, it can be disabled by setting `--enable-prune=false`.
 
 ## Commands
 
