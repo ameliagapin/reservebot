@@ -5,6 +5,8 @@ COPY . .
 
 RUN go build -o /app
 
+
 EXPOSE 666
 
-ENTRYPOINT ["sh", "-c", "/app/reservebot -token=${SLACK_TOKEN} -challenge=${SLACK_CHALLENGE} -admins=${SLACK_ADMINS}"]
+#ENTRYPOINT ["sh", "-c", "/app/reservebot -token=${SLACK_TOKEN} -challenge=${SLACK_CHALLENGE} -admins=${SLACK_ADMINS} -require-resource-env=$REQUIRE_RESOURCE_ENV"]
+ENTRYPOINT ["/app/reservebot"]

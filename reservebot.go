@@ -6,6 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,15 +27,45 @@ var (
 	reqResourceEnv bool
 )
 
+func LookupEnvOrString(key string, defaultVal string) string {
+	if val, ok := os.LookupEnv(key); ok {
+		return val
+	}
+	return defaultVal
+}
+
+func LookupEnvOrInt(key string, defaultVal int) int {
+	if val, ok := os.LookupEnv(key); ok {
+		v, err := strconv.Atoi(val)
+		if err != nil {
+			log.Fatalf("LookupEnvOrInt[%s]: %v", key, err)
+		}
+		return v
+	}
+	return defaultVal
+}
+
+func LookupEnvOrBool(key string, defaultVal bool) bool {
+	if val, ok := os.LookupEnv(key); ok {
+		if val == "true" {
+			return true
+		} else {
+			return false
+		}
+	}
+	return defaultVal
+}
+
 func main() {
-	flag.StringVar(&token, "token", "", "Slack API Token")
-	flag.StringVar(&challenge, "challenge", "", "Slack verification token")
-	flag.IntVar(&listenPort, "listen-port", 666, "Listen port")
-	flag.BoolVar(&debug, "debug", false, "Debug mode")
-	flag.StringVar(&admins, "admins", "", "Turn on administrative commands for specific admins, comma separated list")
-	flag.BoolVar(&reqResourceEnv, "require-resource-env", true, "Require resource reservation to include environment")
+	flag.StringVar(&token, "token", LookupEnvOrString("SLACK_TOKEN", ""), "Slack API Token")
+	flag.StringVar(&challenge, "challenge", LookupEnvOrString("SLACK_CHALLENGE", ""), "Slack verification token")
+	flag.IntVar(&listenPort, "listen-port", LookupEnvOrInt("LISTEN_PORT", 666), "Listen port")
+	flag.BoolVar(&debug, "debug", LookupEnvOrBool("DEBUG", false), "Debug mode")
+	flag.StringVar(&admins, "admins", LookupEnvOrString("SLACK_ADMINS", ""), "Turn on administrative commands for specific admins, comma separated list")
+	flag.BoolVar(&reqResourceEnv, "require-resource-env", LookupEnvOrBool("REQUIRE_RESOURCE_ENV", true), "Require resource reservation to include environment")
 	flag.Parse()
 
+	// Make sure required vars are set
 	if token == "" {
 		log.Error("Slack token is required")
 		return
