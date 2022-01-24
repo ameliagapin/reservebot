@@ -29,6 +29,9 @@ $ ./reservebot -token "<YOUR_SLACK_TOKEN>" -challenge "<SLACK_VERIFICATION_TOKEN
 Then in Slack, set up "event subscriptions" for `<ngrok url from your terminal>/events`.
 
 ### Docker
+The docker run uses environment variables. The following are supported - `SLACK_TOKEN`, `SLACK_CHALLENGE`, `LISTEN_PORT`, `DEBUG`, `SLACK_ADMINS`, `REQUIRE_RESOURCE_ENV`/
+
+Run docker as follows:
 ```
 $ docker build -t reservebot .
 $ docker run [-d] -p 666:666 reservebot -e SLACK_TOKEN=<YOUR_SLACK_TOKEN> -e SLACK_CHALLENGE=<SLACK_VERIFICATION_TOKEN>
