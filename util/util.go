@@ -60,7 +60,7 @@ func LookupEnvOrBool(key string, defaultVal bool) bool {
 	return defaultVal
 }
 
-func parseAdmins(admins string) []string {
+func ParseAdmins(admins string) []string {
 	// Convert admins list into slice
 	var admins_ary []string
 	if len(admins) > 0 {

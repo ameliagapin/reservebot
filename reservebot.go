@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/ameliagapin/reservebot/data"
@@ -61,7 +60,7 @@ func main() {
 		}
 	}()
 
-	handler := handler.New(api, data, reqResourceEnv, utils.parseAdmins(admins))
+	handler := handler.New(api, data, reqResourceEnv, util.ParseAdmins(admins))
 
 	http.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
 		buf := new(bytes.Buffer)
