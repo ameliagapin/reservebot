@@ -7,4 +7,4 @@ RUN go build -o /app
 
 EXPOSE 666
 
-ENTRYPOINT ["/app/reservebot", "-token", "$SLACK_TOKEN", "-challenge", "$SLACK_CHALLENGE"]
+CMD ["sh", "-c", "/app/reservebot -token=${SLACK_TOKEN} -challenge=${SLACK_CHALLENGE} -admins=${SLACK_ADMINS}"]

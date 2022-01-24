@@ -31,7 +31,7 @@ Then in Slack, set up "event subscriptions" for `<ngrok url from your terminal>/
 ### Docker
 ```
 $ docker build -t reservebot .
-$ docker run [-d] -p 666:666 reservebot -token "<YOUR_SLACK_TOKEN>" -challenge "<SLACK_VERIFICATION_TOKEN>"
+$ docker run [-d] -p 666:666 reservebot -e SLACK_TOKEN=<YOUR_SLACK_TOKEN> -e SLACK_CHALLENGE=<SLACK_VERIFICATION_TOKEN>
 ```
 
 ## Setting up Slack
