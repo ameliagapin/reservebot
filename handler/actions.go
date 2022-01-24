@@ -19,7 +19,9 @@ var (
 		"reserve":       *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sreserve\s(.+)`),
 		"release":       *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\srelease\s(.+)`),
 		"clear":         *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sclear\s(.+)`),
+		"kick_empty":    *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\skick$`),
 		"kick":          *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\skick\s\<\@([a-zA-Z0-9]+)\>`),
+		"kick_nonuser":  *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\skick\s(.+)`),
 		"remove":        *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sremove\sme\sfrom\s(.+)`),
 		"all_status":    *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus$`),
 		"single_status": *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus\s(.+)`),
@@ -61,7 +63,7 @@ var (
 	msgUknownUser                   = "I'm sorry, I don't know who that is. Do _you_ know that is?"
 	msgXClearedY                    = "%s cleared `%s`"
 	msgXCurrentlyHas                = "%s currently has `%s`"
-	msgXHasBeenKickedFromNResources = "%s has been kicked from %d resouce(s)"
+	msgXHasBeenKickedFromNResources = "%s has been kicked from %d resource(s)"
 	msgXHasBeenRemovedFromY         = "%s has been kicked from `%s`. It's all yours. Get weird."
 	msgXHasBeenRemovedFromYZ        = "%s has been removed from the queue for `%s`%s"
 	msgXHasReleasedYItIsYours       = "%s has released `%s`. It's all yours. Get weird."
