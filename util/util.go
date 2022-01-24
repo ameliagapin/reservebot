@@ -73,3 +73,13 @@ func ParseAdmins(admins string) []string {
 
 	return admins_ary
 }
+
+func InSlice(arr []string, str string) bool {
+	for _, a := range arr {
+		if a == str {
+			return true
+		}
+	}
+	return false
+}
+

@@ -82,15 +82,6 @@ var (
 	msgYouHaveRemovedYourselfFromY  = "you have removed yourself from `%s`"
 )
 
-func inslice(arr []string, str string) bool {
-	for _, a := range arr {
-		if a == str {
-			return true
-		}
-	}
-	return false
-}
-
 func (h *Handler) getAction(text string) string {
 	for a, r := range actions {
 		if r.MatchString(text) {
@@ -479,7 +470,7 @@ func (h *Handler) kick(ea *EventAction) error {
 		return err
 	}
 
-	if (len(h.admins) == 0) || (inslice(h.admins, u.Name)) {
+	if (len(h.admins) == 0) || (util.InSlice(h.admins, u.Name)) {
 		matches := h.getMatches(ea.Action, ev.Text)
 		if len(matches) != 1 {
 			h.reply(ea, msgMustSpecifyUser, true)
@@ -568,7 +559,7 @@ func (h *Handler) nuke(ea *EventAction) error {
 		return err
 	}
 
-	if (len(h.admins) == 0) || (inslice(h.admins, u.Name)) {
+	if (len(h.admins) == 0) || (util.InSlice(h.admins, u.Name)) {
 		h.data = data.NewMemory()
 
 		msg := fmt.Sprintf(msgXNukedQueue, h.getUserDisplay(u, true))
@@ -589,7 +580,7 @@ func (h *Handler) prune(ea *EventAction) error {
 		return err
 	}
 
-	if (len(h.admins) == 0) || (inslice(h.admins, u.Name)) {
+	if (len(h.admins) == 0) || (util.InSlice(h.admins, u.Name)) {
 		resources := h.data.GetResources()
 		for _, res := range resources {
 			q, err := h.data.GetQueueForResource(res.Name, res.Env)
@@ -647,7 +638,7 @@ func (h *Handler) help(ea *EventAction) error {
 	helpText += TICK + "clear <resource>" + TICK + " This will clear the queue for a given resource and release it.\n\n"
 
 	// if there are no admins specified or there are and the user is in the list then show these options
-	if (len(h.admins) == 0) || (inslice(h.admins, u.Name)) {
+	if (len(h.admins) == 0) || (util.InSlice(h.admins, u.Name)) {
 		helpText += TICK + "prune <resource>" + TICK + " This will clear all unreserved resources from memory.\n\n"
 		helpText += TICK + "kick <@user>" + TICK + " This will kick the mentioned user from _all_ resources they are holding. As the user is kicked from each resource, the queue will be advanced to the next user waiting.\n\n"
 		helpText += TICK + "nuke" + TICK + " This will clear all reservations and all queues for all resources. This can only be done from a public channel, not a DM. There is no confirmation, so be careful.\n\n"
