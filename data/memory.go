@@ -24,6 +24,14 @@ func NewMemory() *Memory {
 	}
 }
 
+func (m *Memory) Create(name, env string) error {
+	// GetResource creates the resource if it doesn't exist
+	r := m.GetResource(name, env, true)
+	r.LastActivity = time.Now()
+
+	return nil
+}
+
 func (m *Memory) Reserve(u *models.User, name, env string) error {
 	r := m.GetResource(name, env, true)
 
