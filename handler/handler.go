@@ -8,6 +8,7 @@ import (
 	"github.com/ameliagapin/reservebot/data"
 	e "github.com/ameliagapin/reservebot/err"
 	"github.com/ameliagapin/reservebot/models"
+	"github.com/ameliagapin/reservebot/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
@@ -300,4 +301,10 @@ func (h *Handler) sendDM(user *models.User, msg string) error {
 	}
 	_, _, err = h.client.PostMessage(c, slack.MsgOptionText(msg, false))
 	return err
+}
+
+// HasAdminAccess returns if the specified user has access to admin features. If no admins are defined
+// at runtime, all users will have admin access 
+func (h *Handler) HasAdminAccess(user string) bool {
+	return len(h.admins) == 0 || util.InSlice(h.admins, user)
 }
