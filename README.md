@@ -101,7 +101,7 @@ This will provide a status for all active and waiting resources for the user.
 
 This will provide a status of a given resource.
 
-#### `remove <resource>`
+#### `remove resource <resource>`
 This will remove the resource if the queue is empty.
 
 #### `remove me from <resource>`
