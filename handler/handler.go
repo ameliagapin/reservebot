@@ -8,6 +8,7 @@ import (
 	"github.com/ameliagapin/reservebot/data"
 	e "github.com/ameliagapin/reservebot/err"
 	"github.com/ameliagapin/reservebot/models"
+	"github.com/ameliagapin/reservebot/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
@@ -18,6 +19,7 @@ type Handler struct {
 	data   data.Manager
 
 	reqEnv bool
+	admins []string
 }
 
 type EventAction struct {
@@ -25,11 +27,12 @@ type EventAction struct {
 	Action string
 }
 
-func New(client *slack.Client, data data.Manager, reqEnv bool) *Handler {
+func New(client *slack.Client, data data.Manager, reqEnv bool, admins []string) *Handler {
 	return &Handler{
 		client: client,
 		data:   data,
 		reqEnv: reqEnv,
+		admins: admins,
 	}
 }
 
@@ -72,11 +75,13 @@ func (h *Handler) CallbackEvent(event slackevents.EventsAPIEvent) error {
 		return h.reserve(ea)
 	case "release", "release_dm":
 		return h.release(ea)
-	case "remove", "remove_dm":
-		return h.remove(ea)
+	case "removeme", "removeme_dm":
+		return h.removeme(ea)
+	case "removeresource", "removeresource_dm":
+		return h.removeresource(ea)
 	case "clear", "clear_dm":
 		return h.clear(ea)
-	case "kick", "kick_dm":
+	case "kick", "kick_empty", "kick_nonuser", "kick_dm":
 		return h.kick(ea)
 	case "nuke":
 		return h.nuke(ea)
@@ -296,4 +301,10 @@ func (h *Handler) sendDM(user *models.User, msg string) error {
 	}
 	_, _, err = h.client.PostMessage(c, slack.MsgOptionText(msg, false))
 	return err
+}
+
+// HasAdminAccess returns if the specified user has access to admin features. If no admins are defined
+// at runtime, all users will have admin access 
+func (h *Handler) HasAdminAccess(user string) bool {
+	return len(h.admins) == 0 || util.InSlice(h.admins, user)
 }
