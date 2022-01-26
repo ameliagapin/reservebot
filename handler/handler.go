@@ -8,6 +8,7 @@ import (
 	"github.com/ameliagapin/reservebot/data"
 	e "github.com/ameliagapin/reservebot/err"
 	"github.com/ameliagapin/reservebot/models"
+	"github.com/ameliagapin/reservebot/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
@@ -18,6 +19,7 @@ type Handler struct {
 	data   data.Manager
 
 	reqEnv bool
+	admins []string
 }
 
 type EventAction struct {
@@ -25,11 +27,12 @@ type EventAction struct {
 	Action string
 }
 
-func New(client *slack.Client, data data.Manager, reqEnv bool) *Handler {
+func New(client *slack.Client, data data.Manager, reqEnv bool, admins []string) *Handler {
 	return &Handler{
 		client: client,
 		data:   data,
 		reqEnv: reqEnv,
+		admins: admins,
 	}
 }
 
@@ -72,11 +75,13 @@ func (h *Handler) CallbackEvent(event slackevents.EventsAPIEvent) error {
 		return h.reserve(ea)
 	case "release", "release_dm":
 		return h.release(ea)
-	case "remove", "remove_dm":
-		return h.remove(ea)
+	case "removeme", "removeme_dm":
+		return h.removeme(ea)
+	case "removeresource", "removeresource_dm":
+		return h.removeresource(ea)
 	case "clear", "clear_dm":
 		return h.clear(ea)
-	case "kick", "kick_dm":
+	case "kick", "kick_empty", "kick_nonuser", "kick_dm":
 		return h.kick(ea)
 	case "nuke":
 		return h.nuke(ea)
@@ -89,7 +94,7 @@ func (h *Handler) CallbackEvent(event slackevents.EventsAPIEvent) error {
 	case "prune", "prune_dm":
 		return h.prune(ea)
 	case "help", "help_dm":
-		return h.reply(ea, helpText, false)
+		return h.help(ea)
 	default:
 		return h.reply(ea, "I'm sorry, I don't know what to do with that request", false)
 	}
@@ -298,35 +303,8 @@ func (h *Handler) sendDM(user *models.User, msg string) error {
 	return err
 }
 
-const helpText = `
-Hello! I can be used via any channel that I have been added to or via DM. Regardless of where you invoke a command, there is a single reservation system that will be shared.
-
-I can handle multiple environments or namespaces. A resource is defined as ` + "`" + `env|name` + "`" + `.
-
-When invoking via DM, I will alert other users via DM when necessary. E.g. Releasing a resource will notify the next user that has it.
-
-*Commands*
-
-When invoking within a channel, you must @-mention me by adding ` + "`@reservebot`" + ` to the _beginning_ of your command.
-
-` + "`reserve <resource>`" + ` This will reserve a given resource for the user. If the resource is currently reserved, the user will be placed into the queue. The resource should be an alphanumeric string with no spaces. A comma-separted list can be used to reserve multiple resources.
-
-` + "`release <resource>`" + ` This will release a given resource. This command must be executed by the person who holds the resource. Upon release, the next person waiting in line will be notified that they now have the resource. The resource should be an alphanumeric string with no spaces. A comma-separted list can be used to reserve multiple resources.
-
-` + "`status`" + ` This will provide a status of all active resources.
-
-` + "`my status`" + ` This will provide a status of all active and queue reservations for the user.
-
-` + "`status <resource>`" + ` This will provide a status of a given resource.
-
-` + "`remove me from <resource>`" + ` This will remove the user from the queue for a resource.
-
-` + "`clear <resource>`" + ` This will clear the queue for a given resource and release it.
-
-` + "`prune`" + ` This will clear all unreserved resources from memory.
-
-` + "`kick <@user>`" + ` This will kick the mentioned user from _all_ resources they are holding. As the user is kicked from each resource, the queue will be advanced to the next user waiting.
-
-` + "`nuke`" + ` This will clear all reservations and all queues for all resources. This can only be done from a public channel, not a DM. There is no confirmation, so be careful.
-
-`
+// HasAdminAccess returns if the specified user has access to admin features. If no admins are defined
+// at runtime, all users will have admin access 
+func (h *Handler) HasAdminAccess(user string) bool {
+	return len(h.admins) == 0 || util.InSlice(h.admins, user)
+}

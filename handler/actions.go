@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/ameliagapin/reservebot/data"
 	e "github.com/ameliagapin/reservebot/err"
@@ -11,71 +12,80 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const TICK = "`"
+
 var (
 	actions = map[string]regexp.Regexp{
-		"hello":         *regexp.MustCompile(`hello.+`),
-		"reserve":       *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sreserve\s(.+)`),
-		"release":       *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\srelease\s(.+)`),
-		"clear":         *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sclear\s(.+)`),
-		"kick":          *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\skick\s\<\@([a-zA-Z0-9]+)\>`),
-		"remove":        *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sremove\sme\sfrom\s(.+)`),
-		"all_status":    *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus$`),
-		"single_status": *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus\s(.+)`),
-		"my_status":     *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\smy\sstatus`),
-		"nuke":          *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\snuke$`),
-		"prune":         *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sprune$`),
-		"help":          *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\shelp$`),
+		"hello":          *regexp.MustCompile(`hello.+`),
+		"reserve":        *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sreserve\s(.+)`),
+		"release":        *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\srelease\s(.+)`),
+		"clear":          *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sclear\s(.+)`),
+		"kick_empty":     *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\skick$`),
+		"kick":           *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\skick\s\<\@([a-zA-Z0-9]+)\>`),
+		"kick_nonuser":   *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\skick\s(.+)`),
+		"removeme":       *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sremove\sme\sfrom\s(.+)`),
+		"removeresource": *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sremove\sresource\s(.+)`),
+		"all_status":     *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus$`),
+		"single_status":  *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sstatus\s(.+)`),
+		"my_status":      *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\smy\sstatus`),
+		"nuke":           *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\snuke$`),
+		"prune":          *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sprune$`),
+		"help":           *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\shelp$`),
 
-		"reserve_dm":       *regexp.MustCompile(`(?m)^reserve\s(.+)`),
-		"release_dm":       *regexp.MustCompile(`(?m)^release\s(.+)`),
-		"clear_dm":         *regexp.MustCompile(`(?m)^clear\s(.+)`),
-		"kick_dm":          *regexp.MustCompile(`(?m)^kick\s\<\@([a-zA-Z0-9]+)\>`),
-		"remove_dm":        *regexp.MustCompile(`(?m)^remove\sme\sfrom\s(.+)`),
-		"all_status_dm":    *regexp.MustCompile(`(?m)^status$`),
-		"single_status_dm": *regexp.MustCompile(`(?m)^status\s(.+)`),
-		"my_status_dm":     *regexp.MustCompile(`(?m)^my\sstatus`),
-		"nuke_dm":          *regexp.MustCompile(`(?m)^nuke$`),
-		"prune_dm":         *regexp.MustCompile(`(?m)^prune$`),
-		"help_dm":          *regexp.MustCompile(`(?m)^help$`),
+		"reserve_dm":        *regexp.MustCompile(`(?m)^reserve\s(.+)`),
+		"release_dm":        *regexp.MustCompile(`(?m)^release\s(.+)`),
+		"clear_dm":          *regexp.MustCompile(`(?m)^clear\s(.+)`),
+		"kick_dm":           *regexp.MustCompile(`(?m)^kick\s\<\@([a-zA-Z0-9]+)\>`),
+		"removeme_dm":       *regexp.MustCompile(`(?m)^remove\sme\sfrom\s(.+)`),
+		"removeresource_dm": *regexp.MustCompile(`(?m)^remove\sresource\s(.+)`),
+		"all_status_dm":     *regexp.MustCompile(`(?m)^status$`),
+		"single_status_dm":  *regexp.MustCompile(`(?m)^status\s(.+)`),
+		"my_status_dm":      *regexp.MustCompile(`(?m)^my\sstatus`),
+		"nuke_dm":           *regexp.MustCompile(`(?m)^nuke$`),
+		"prune_dm":          *regexp.MustCompile(`(?m)^prune$`),
+		"help_dm":           *regexp.MustCompile(`(?m)^help$`),
 	}
 )
 
 var (
 	msgAlreadyInAllQueues           = "Bruh, you are already in all specified queues"
 	msgIDontKnow                    = "I don't know what happened, but it wasn't good"
-	msgMustSpecifyResource          = "you must specify a resource"
-	msgMustSpecifyUser              = "you must specify a user to kick"
-	msgMustSpecifyValidResource     = "you must specify a valid resource"
-	msgMustUseReleaseForY           = "you cannot remove yourself from the queue for `%s` because you currently have it. Please use `release` instead."
-	msgMustUseRemoveForY            = "you cannot release `%s` because you do not currently have it. Please use `remove` instead."
+	msgMustSpecifyResource          = "You must specify a resource"
+	msgMustSpecifyUser              = "You must specify a user to kick"
+	msgMustSpecifyValidResource     = "You must specify a valid resource"
+	msgMustUseReleaseForY           = "You cannot remove yourself from the queue for `%s` because you currently have it. Please use `release` instead."
+	msgMustUseRemoveForY            = "You cannot release `%s` because you do not currently have it. Please use `remove me from` instead."
 	msgNoReservations               = "Like Anthony Bourdain :rip:, there are _no reservations_. Lose yourself in the freedom of a world waiting on your next move."
 	msgPeriodItIsNowFree            = ". It is now free."
 	msgPeriodXHasItCurrently        = ". %s has it currently."
 	msgPeriodXStillHasIt            = ". %s still has it."
 	msgQueuesPruned                 = "I have removed all unreserved resources. Hope that's what you wanted. If not, it's too late now. Fool."
+	msgRemoveResourceNotFound       = "Resource cannot be removed, it was not found."
+	msgRemoveResourceReserved       = "Resource cannot be removed, it currently has active reservations."
+	msgRemoveResourceSuccess        = "Resource removed."
 	msgReservedButNotInQueue        = "%s reserved `%s`, but is currently not in the queue"
-	msgResourceDoesNotExistY        = "resource `%s` does not exist"
+	msgResourceDoesNotExistY        = "Resource `%s` does not exist"
 	msgResourceImproperlyFormatted  = "LOL u serious? Resources must be formatted as `<env>|<name>`. Example: `your_family|mom`"
 	msgUknownUser                   = "I'm sorry, I don't know who that is. Do _you_ know that is?"
 	msgXClearedY                    = "%s cleared `%s`"
 	msgXCurrentlyHas                = "%s currently has `%s`"
-	msgXHasBeenKickedFromNResources = "%s has been kicked from %d resouce(s)"
+	msgXHasBeenKickedFromNResources = "%s has been kicked from %d resource(s)"
 	msgXHasBeenRemovedFromY         = "%s has been kicked from `%s`. It's all yours. Get weird."
 	msgXHasBeenRemovedFromYZ        = "%s has been removed from the queue for `%s`%s"
 	msgXHasReleasedYItIsYours       = "%s has released `%s`. It's all yours. Get weird."
-	msgXHasReleasedYZ               = "%s has released `%s`. %s"
+	msgXHasReleasedYZ               = "%s has released `%s`%s"
 	msgXHasRemovedThemselvesFromYZ  = "%s has removed themselves from the queue for `%s`%s"
 	msgXItIsYours                   = "%s it's all yours. Get weird."
 	msgXKickedYouFromY              = "%s kicked you from `%s`"
 	msgXNukedQueue                  = "%s nuked the whole thing. Yikes."
 	msgYHasBeenCleared              = "`%s` has been cleared"
-	msgYouAreNInLineForY            = "you are %s in line for `%s`%s"
-	msgYouAreNotInLineForY          = "you are not in line for `%s`"
-	msgYouCurrentlyHave             = "you currently have `%s`"
-	msgYouHaveNoReservations        = "you have no reservations"
-	msgYouHaveReleasedY             = "you have released `%s`"
-	msgYouHaveRemovedXFromY         = "you have removed %s from `%s`"
-	msgYouHaveRemovedYourselfFromY  = "you have removed yourself from `%s`"
+	msgYouAreNInLineForY            = "You are %s in line for `%s`%s"
+	msgYouAreNotInLineForY          = "You are not in line for `%s`"
+	msgYouCurrentlyHave             = "You currently have `%s`"
+	msgYouHaveNoReservations        = "You have no reservations"
+	msgYouHaveReleasedY             = "You have released `%s`"
+	msgYouHaveRemovedXFromY         = "You have removed %s from `%s`"
+	msgYouHaveRemovedYourselfFromY  = "You have removed yourself from `%s`"
 )
 
 func (h *Handler) getAction(text string) string {
@@ -251,7 +261,7 @@ func (h *Handler) release(ea *EventAction) error {
 	return nil
 }
 
-func (h *Handler) remove(ea *EventAction) error {
+func (h *Handler) removeme(ea *EventAction) error {
 	ev := ea.Event
 	u, err := h.getUser(ev.User)
 	if err != nil {
@@ -466,6 +476,11 @@ func (h *Handler) kick(ea *EventAction) error {
 		return err
 	}
 
+	if !h.HasAdminAccess(u.Name) {
+		h.reply(ea, "Error, your user is not authorized to run the command `kick`.", false)
+		return nil
+	}
+
 	matches := h.getMatches(ea.Action, ev.Text)
 	if len(matches) != 1 {
 		h.reply(ea, msgMustSpecifyUser, true)
@@ -551,6 +566,11 @@ func (h *Handler) nuke(ea *EventAction) error {
 		return err
 	}
 
+        if !h.HasAdminAccess(u.Name) {
+                h.reply(ea, "Error, your user is not authorized to run the command `nuke`.", false)
+                return nil
+        }
+
 	h.data = data.NewMemory()
 
 	msg := fmt.Sprintf(msgXNukedQueue, h.getUserDisplay(u, true))
@@ -561,12 +581,17 @@ func (h *Handler) nuke(ea *EventAction) error {
 
 func (h *Handler) prune(ea *EventAction) error {
 	ev := ea.Event
-	_, err := h.getUser(ev.User)
+	u, err := h.getUser(ev.User)
 	if err != nil {
 		log.Errorf("%+v", err)
 		h.errorReply(ev.Channel, "")
 		return err
 	}
+
+        if !h.HasAdminAccess(u.Name) {
+                h.reply(ea, "Error, your user is not authorized to run the command `prune`.", false)
+                return nil
+        }
 
 	resources := h.data.GetResources()
 	for _, res := range resources {
@@ -590,5 +615,103 @@ func (h *Handler) prune(ea *EventAction) error {
 
 	h.reply(ea, msgQueuesPruned, false)
 
+	return nil
+}
+
+func (h *Handler) removeresource(ea *EventAction) error {
+	ev := ea.Event
+	_, err := h.getUser(ev.User)
+	if err != nil {
+		log.Errorf("%+v", err)
+		h.errorReply(ev.Channel, "")
+		return err
+	}
+
+	matches := h.getMatches(ea.Action, ev.Text)
+
+	var nmenv []string
+	for _, m := range matches {
+		if strings.Contains(m, "|") {
+			nmenv = strings.Split(m, "|")
+		} else {
+			// No env
+			nmenv = append(nmenv, "")
+			nmenv = append(nmenv, m)
+		}
+	}
+
+	resources := h.data.GetResources()
+	removedResource := false
+	for _, res := range resources {
+		if (nmenv[0] != res.Env) || (nmenv[1] != res.Name) {
+			continue
+		}
+
+		removedResource = true
+		q, err := h.data.GetQueueForResource(res.Name, res.Env)
+		if err != nil {
+			// this shouldn't happen, but there's nothing to alert the user to
+			log.Errorf("%+v", err)
+			continue
+		}
+
+		if q.HasReservations() {
+			h.reply(ea, msgRemoveResourceReserved, false)
+			continue
+		}
+
+		err = h.data.RemoveResource(res.Name, res.Env)
+		if err != nil {
+			log.Errorf("%+v", err)
+			continue
+		}
+
+		h.reply(ea, msgRemoveResourceSuccess, false)
+	}
+
+	if removedResource == false {
+		h.reply(ea, msgRemoveResourceNotFound, false)
+	}
+
+	return nil
+}
+
+func (h *Handler) help(ea *EventAction) error {
+	ev := ea.Event
+	u, err := h.getUser(ev.User)
+	if err != nil {
+		log.Errorf("%+v", err)
+		h.errorReply(ev.Channel, "")
+		return err
+	}
+
+	var helpText = "Hello! I can be used via any channel that I have been added to or via DM. Regardless of where you invoke a command, there is a single reservation system that will be shared.\n\n"
+	if h.reqEnv == true {
+		helpText += "I can handle multiple environments or namespaces. A resource is defined as " + TICK + "env|name" + TICK + ".\n\n"
+	} else {
+		helpText += "A resource is defined as " + TICK + "name" + TICK + ".\n\n"
+	}
+
+	helpText += "When invoking via DM, I will alert other users via DM when necessary. E.g. Releasing a resource will notify the next user that has it.\n\n"
+	helpText += "*Commands*\n\n"
+	helpText += "When invoking within a channel, you must @-mention me by adding " + TICK + "@reservebot" + TICK + "to the _beginning_ of your command.\n\n"
+
+	helpText += TICK + "reserve <resource>" + TICK + " This will reserve a given resource for the user. If the resource is currently reserved, the user will be placed into the queue. The resource should be an alphanumeric string with no spaces. A comma-separted list can be used to reserve multiple resources.\n\n"
+	helpText += TICK + "release <resource>" + TICK + " This will release a given resource. This command must be executed by the person who holds the resource. Upon release, the next person waiting in line will be notified that they now have the resource. The resource should be an alphanumeric string with no spaces. A comma-separted list can be used to reserve multiple resources.\n\n"
+	helpText += TICK + "status" + TICK + " This will provide a status of all active resources.\n\n"
+	helpText += TICK + "my status" + TICK + " This will provide a status of all active and queue reservations for the user.\n\n"
+	helpText += TICK + "status <resource>" + TICK + " This will provide a status of a given resource.\n\n"
+	helpText += TICK + "remove me from <resource>" + TICK + " This will remove the user from the queue for a resource.\n\n"
+	helpText += TICK + "remove resource <resource>" + TICK + " This will remove an empty resource.\n\n"
+	helpText += TICK + "clear <resource>" + TICK + " This will clear the queue for a given resource and release it.\n\n"
+
+	// if there are no admins specified or there are and the user is in the list then show these options
+	if h.HasAdminAccess(u.Name) {
+		helpText += TICK + "prune <resource>" + TICK + " This will clear all unreserved resources from memory.\n\n"
+		helpText += TICK + "kick <@user>" + TICK + " This will kick the mentioned user from _all_ resources they are holding. As the user is kicked from each resource, the queue will be advanced to the next user waiting.\n\n"
+		helpText += TICK + "nuke" + TICK + " This will clear all reservations and all queues for all resources. This can only be done from a public channel, not a DM. There is no confirmation, so be careful.\n\n"
+	}
+
+	h.reply(ea, helpText, false)
 	return nil
 }
