@@ -17,6 +17,7 @@ const TICK = "`"
 var (
 	actions = map[string]regexp.Regexp{
 		"hello":          *regexp.MustCompile(`hello.+`),
+		"create":         *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\screate\s(.+)`),
 		"reserve":        *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sreserve\s(.+)`),
 		"release":        *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\srelease\s(.+)`),
 		"clear":          *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sclear\s(.+)`),
@@ -32,6 +33,7 @@ var (
 		"prune":          *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\sprune$`),
 		"help":           *regexp.MustCompile(`(?m)^\<\@[A-Z0-9]+\>\shelp$`),
 
+		"create_dm":         *regexp.MustCompile(`(?m)^create\s(.+)`),
 		"reserve_dm":        *regexp.MustCompile(`(?m)^reserve\s(.+)`),
 		"release_dm":        *regexp.MustCompile(`(?m)^release\s(.+)`),
 		"clear_dm":          *regexp.MustCompile(`(?m)^clear\s(.+)`),
@@ -49,6 +51,7 @@ var (
 
 var (
 	msgAlreadyInAllQueues           = "Bruh, you are already in all specified queues"
+	msgCreatedResource              = "Resource is created."
 	msgIDontKnow                    = "I don't know what happened, but it wasn't good"
 	msgMustSpecifyResource          = "You must specify a resource"
 	msgMustSpecifyUser              = "You must specify a user to kick"
@@ -95,6 +98,33 @@ func (h *Handler) getAction(text string) string {
 		}
 	}
 	return ""
+}
+
+func (h *Handler) create(ea *EventAction) error {
+	ev := ea.Event
+
+	matches := h.getMatches(ea.Action, ev.Text)
+	resources, err := h.getResourcesFromCommaList(matches[0])
+	if err != nil {
+		h.handleGetResourceError(ea, err)
+		return err
+	}
+
+	//        success := []*models.Resource{}
+	for _, res := range resources {
+		err := h.data.Create(res.Name, res.Env)
+		if err != nil {
+			// if the user is already in the queue, we're going to skip returning an error
+			if err != e.AlreadyInQueue {
+				h.errorReply(ev.Channel, err.Error())
+				continue
+			}
+		} else {
+			h.reply(ea, msgCreatedResource, false)
+		}
+	}
+
+	return nil
 }
 
 func (h *Handler) reserve(ea *EventAction) error {
@@ -566,10 +596,10 @@ func (h *Handler) nuke(ea *EventAction) error {
 		return err
 	}
 
-        if !h.HasAdminAccess(u.Name) {
-                h.reply(ea, "Error, your user is not authorized to run the command `nuke`.", false)
-                return nil
-        }
+	if !h.HasAdminAccess(u.Name) {
+		h.reply(ea, "Error, your user is not authorized to run the command `nuke`.", false)
+		return nil
+	}
 
 	h.data = data.NewMemory()
 
@@ -588,10 +618,10 @@ func (h *Handler) prune(ea *EventAction) error {
 		return err
 	}
 
-        if !h.HasAdminAccess(u.Name) {
-                h.reply(ea, "Error, your user is not authorized to run the command `prune`.", false)
-                return nil
-        }
+	if !h.HasAdminAccess(u.Name) {
+		h.reply(ea, "Error, your user is not authorized to run the command `prune`.", false)
+		return nil
+	}
 
 	resources := h.data.GetResources()
 	for _, res := range resources {
@@ -696,6 +726,7 @@ func (h *Handler) help(ea *EventAction) error {
 	helpText += "*Commands*\n\n"
 	helpText += "When invoking within a channel, you must @-mention me by adding " + TICK + "@reservebot" + TICK + "to the _beginning_ of your command.\n\n"
 
+	helpText += TICK + "create <resource>" + TICK + "This will create a free resource.\n\n"
 	helpText += TICK + "reserve <resource>" + TICK + " This will reserve a given resource for the user. If the resource is currently reserved, the user will be placed into the queue. The resource should be an alphanumeric string with no spaces. A comma-separted list can be used to reserve multiple resources.\n\n"
 	helpText += TICK + "release <resource>" + TICK + " This will release a given resource. This command must be executed by the person who holds the resource. Upon release, the next person waiting in line will be notified that they now have the resource. The resource should be an alphanumeric string with no spaces. A comma-separted list can be used to reserve multiple resources.\n\n"
 	helpText += TICK + "status" + TICK + " This will provide a status of all active resources.\n\n"

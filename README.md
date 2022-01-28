@@ -81,6 +81,9 @@ Pruning is enabled by default, it can be disabled by setting `--prune-enabled=fa
 
 When invoking within a channel, you must @-mention the bot by adding `@reservebot` to the _beginning_ of your command.
 
+#### `create <resource>`
+This will create a resource with no reservations.
+
 #### `reserve <resource>`
 
 This will reserve a given resource for the user. If the resource is currently reserved, the user will be placed into the queue. The resource should be an alphanumeric string with no spaces. A comma-separted list can be used to reserve multiple resources.

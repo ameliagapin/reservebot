@@ -71,6 +71,8 @@ func (h *Handler) CallbackEvent(event slackevents.EventsAPIEvent) error {
 	switch ea.Action {
 	case "hello":
 		return h.sayHello(ea)
+	case "create", "create_dm":
+		return h.create(ea)
 	case "reserve", "reserve_dm":
 		return h.reserve(ea)
 	case "release", "release_dm":
@@ -304,7 +306,7 @@ func (h *Handler) sendDM(user *models.User, msg string) error {
 }
 
 // HasAdminAccess returns if the specified user has access to admin features. If no admins are defined
-// at runtime, all users will have admin access 
+// at runtime, all users will have admin access
 func (h *Handler) HasAdminAccess(user string) bool {
 	return len(h.admins) == 0 || util.InSlice(h.admins, user)
 }

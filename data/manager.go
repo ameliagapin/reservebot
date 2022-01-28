@@ -5,6 +5,7 @@ import (
 )
 
 type Manager interface {
+	Create(name string, env string) error
 	GetAllUsersInQueues() []*models.User
 	GetPosition(u *models.User, name string, env string) (int, error)
 	GetQueueForResource(name string, env string) (*models.Queue, error)
